@@ -63,7 +63,14 @@ HACS installa le card solo da un repository GitHub **pubblico** che abbia `hacs.
 ### A mano
 
 1. Copia `dist/solar-combo-card.js` in `/config/www/solar-combo-card.js`.
-2. **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa**: URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**.
+2. **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa**: URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**. La voce «Risorse» compare solo con la **Modalità avanzata** attiva: clicca sul tuo nome in basso a sinistra (Profilo) e accendi «Modalità avanzata». Se le dashboard sono in modalità YAML (`lovelace: mode: yaml`), la voce non c'è: aggiungi la risorsa in `configuration.yaml`:
+
+   ```yaml
+   lovelace:
+     resources:
+       - url: /local/solar-combo-card.js
+         type: module
+   ```
 3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi `?v=0.1.1` all'URL della risorsa.
 
 ## Configurazione
