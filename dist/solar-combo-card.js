@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.6.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.6.0";
+/* Solar Combo Card 0.7.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.7.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -62,9 +62,12 @@ const NODI = {
   rete: { x: 390, y: 310, disegno: "traliccio" },
 };
 
+const FV_BOX = { x: 96, y: 129, w: 68, h: 22 };
+
 const FLUSSI = {
-  pv1: { d: "M 70 116 C 70 150, 130 140, 130 175", colore: "var(--scc-solare)" },
-  pv2: { d: "M 190 116 C 190 150, 130 140, 130 175", colore: "var(--scc-solare)" },
+  pv1: { d: "M 70 116 C 70 134, 80 140, 96 140", colore: "var(--scc-solare)" },
+  pv2: { d: "M 190 116 C 190 134, 180 140, 164 140", colore: "var(--scc-solare)" },
+  fv: { d: "M 130 151 L 130 175", colore: "var(--scc-solare)" },
   casa: { d: "M 149 200 L 318 200", colore: "var(--scc-casa)" },
   batteria: { d: "M 130 225 L 130 288", colore: "var(--scc-batteria)" },
   r4850: { d: "M 245 310 L 152 310", colore: "var(--scc-caricatore)" },
@@ -239,6 +242,11 @@ class SolarComboCard extends HTMLElement {
         ${titolo}
         <svg viewBox="0 0 440 380" role="img" aria-label="Flusso di energia solar-combo">
           ${flussi}
+          <!-- totale FV: somma delle due stringhe -->
+          <g class="fv-totale">
+            <rect x="${FV_BOX.x}" y="${FV_BOX.y}" width="${FV_BOX.w}" height="${FV_BOX.h}" rx="6"></rect>
+            <text class="tot" x="${FV_BOX.x + FV_BOX.w / 2}" y="${FV_BOX.y + 15}" data-t="fv_tot"></text>
+          </g>
           ${nodi}
           <!-- stringhe FV: testi sopra i cerchi -->
           <text class="tit" x="70" y="24">PV1</text>
@@ -349,15 +357,19 @@ class SolarComboCard extends HTMLElement {
     if (!this._config || !this._hass) return;
     if (!this._costruita) this._costruisci();
 
-    let pvTot = 0;
+    let pvTot = 0, pvLetti = 0;
     for (const n of ["pv1", "pv2"]) {
       const p = this._num(`${n}_power`);
       this._testo(n, this._potenza(p));
       this._testo(`${n}_sub`, `${this._fmt(this._num(`${n}_voltage`))} V · ${this._fmt(this._num(`${n}_current`), 1)} A`);
       this._flusso(n, p);
       this._nodo(n, "attivo", p >= this._soglia);
-      if (Number.isFinite(p)) pvTot += p;
+      if (Number.isFinite(p)) { pvTot += p; pvLetti++; }
     }
+    const fvTot = pvLetti ? pvTot : NaN;
+    this._testo("fv_tot", `FV ${this._potenza(fvTot)}`);
+    this._flusso("fv", fvTot);
+    this.shadowRoot.querySelector(".fv-totale").classList.toggle("attivo", fvTot >= this._soglia);
 
     const modo = this._stato("inverter_mode");
     this._testo("inv_modo", modo ? modo.state : "—");
@@ -472,6 +484,10 @@ const STILE = `
   .nodo.acceso .alone { animation: scc-led 1.6s ease-in-out infinite; }
   @keyframes scc-led { 0%, 100% { opacity: .15; } 50% { opacity: .6; } }
   .nodo .livello { transition: y .6s, height .6s, fill .6s; }
+  .fv-totale rect { fill: var(--card-background-color, #fff); stroke: var(--scc-solare);
+                    stroke-width: 1.5; stroke-opacity: .4; transition: stroke-opacity .4s; }
+  .fv-totale.attivo rect { stroke-opacity: 1; }
+  .tot { font-size: 11px; font-weight: 700; }
   .linea { fill: none; stroke: var(--c); stroke-width: 2; opacity: .25; }
   .punti { fill: none; stroke: var(--c); stroke-width: 3.5; stroke-linecap: round;
            stroke-dasharray: 0.1 14; opacity: 0; }

@@ -22,7 +22,8 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 
 | Flusso | Potenza mostrata |
 |---|---|
-| PV1, PV2 → inverter | potenza di ogni stringa |
+| PV1, PV2 → totale FV | potenza di ogni stringa |
+| totale FV → inverter | somma delle due stringhe, scritta nel riquadro tra i pannelli e l'inverter |
 | inverter → casa | *SMG-II Output Active Power* |
 | inverter ↔ batteria | *BMS Potenza* − *R4850G2 Output Power*: il R4850G2 carica la batteria direttamente sul bus DC, quindi la sua potenza va tolta dal totale del BMS. Freccia ↓ verso la batteria, ↑ verso l'inverter |
 | rete → R4850G2 | *R4850G2 Input Power* |
@@ -74,7 +75,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.6.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.7.0`).
 
 ## Configurazione
 
