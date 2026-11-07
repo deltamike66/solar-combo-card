@@ -52,26 +52,31 @@ Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, l
 
 La card è un solo file JavaScript, senza dipendenze e senza compilazione: `dist/solar-combo-card.js`.
 
-### Con HACS
+### Con il Marketplace (HACS integrato, Home Assistant 2026.11 e successivi)
 
-HACS installa le card solo da un repository GitHub **pubblico** che abbia `hacs.json` nella radice. Questa directory è già organizzata come la radice di quel repository (`hacs.json`, `dist/`, `README.md`): va pubblicata da sola, per esempio con `git subtree split --prefix homeassistant/solar-combo-card`. Poi:
+Dalla 2026.11 HACS è integrato in Home Assistant come **Marketplace**.
 
-1. HACS → menu ⋮ → **Repository personalizzati**: indirizzo del repository, categoria **Dashboard**.
-2. Cerca **Solar Combo Card** in HACS e installala.
-3. HACS aggiunge da solo la risorsa `/hacsfiles/solar-combo-card/solar-combo-card.js`.
+1. **Impostazioni → Marketplace**, in alto a destra **Add from link**: incolla `deltamike66/solar-combo-card` e, se chiede il tipo, scegli **Dashboard**. La prima volta va collegato l'account GitHub.
+2. Cerca **Solar Combo Card** nel Marketplace e installala: la risorsa viene aggiunta da sola. Gli aggiornamenti arrivano come nuove release del repository.
+
+Con HACS separato (versioni fino alla 2026.10): HACS → ⋮ → **Repository personalizzati**, indirizzo `deltamike66/solar-combo-card`, categoria **Dashboard**.
 
 ### A mano
 
-1. Copia `dist/solar-combo-card.js` in `/config/www/solar-combo-card.js`.
-2. **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa**: URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**. La voce «Risorse» compare solo con la **Modalità avanzata** attiva: clicca sul tuo nome in basso a sinistra (Profilo) e accendi «Modalità avanzata». Se le dashboard sono in modalità YAML (`lovelace: mode: yaml`), la voce non c'è: aggiungi la risorsa in `configuration.yaml`:
+1. Copia `dist/solar-combo-card.js` in `/config/www/solar-combo-card.js` (crea la cartella `www` se non c'è; dopo averla creata riavvia Home Assistant).
+2. Dichiara la risorsa in `configuration.yaml` e riavvia Home Assistant:
 
    ```yaml
    lovelace:
+     resource_mode: yaml
      resources:
        - url: /local/solar-combo-card.js
          type: module
    ```
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi `?v=0.1.1` all'URL della risorsa.
+
+   Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (card installate dal Marketplace), vanno elencate anche loro (il Marketplace mostra la riga da aggiungere).
+   Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.5.0`).
 
 ## Configurazione
 
@@ -125,12 +130,14 @@ Il SOC mostrato è quello del BMS, poco affidabile d'inverno: la logica di caric
 
 ## Sviluppo
 
+La card si sviluppa nel repository del progetto solar-combo, nella cartella `homeassistant/solar-combo-card`; il repository [solar-combo-card](https://github.com/deltamike66/solar-combo-card) ne è la copia pubblicata per il Marketplace (non modificarlo direttamente).
+
 ```bash
-cd homeassistant/solar-combo-card
+# dalla cartella della card
 python3 -m http.server 8000
 # http://localhost:8000/dev/anteprima.html?scenario=giorno   (giorno | notte | carica)
 ```
 
 La pagina carica `dist/solar-combo-card.js` con dati finti, in tema chiaro e scuro; `ha-card` è sostituito da un segnaposto. Per un controllo veloce della sintassi: `node --check dist/solar-combo-card.js`.
 
-A ogni rilascio aggiorna `VERSION` in testa al file JavaScript.
+A ogni rilascio aggiorna `VERSION` in testa al file JavaScript, fai commit nel progetto solar-combo e lancia `scripts/pubblica_card.sh`: copia la cartella nel repository solar-combo-card e crea la release `v<VERSION>`.
