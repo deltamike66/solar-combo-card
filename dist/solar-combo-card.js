@@ -1,32 +1,6 @@
-/*
- * Solar Combo Card — card Lovelace del flusso di energia dell'impianto
- * solar-combo (esphome/solar-combo.yaml).
- *
- * Nodi: 2 stringhe FV, inverter Easun SMG II, batteria JK-BMS, caricabatterie
- * Huawei R4850G2, casa (uscita AC dell'inverter), rete del gestore (entra solo
- * nel R4850G2: l'inverter resta in off-grid).
- *
- * Flussi:
- *   PV1, PV2  -> inverter          potenza di ogni stringa
- *   inverter  -> casa              Output Active Power dell'inverter
- *   inverter <-> batteria          BMS Potenza - R4850G2 Output Power
- *                                  (il R4850G2 carica la batteria direttamente
- *                                  sul bus DC, quindi va tolto dal totale del BMS)
- *   rete      -> R4850G2           R4850G2 Input Power
- *   R4850G2   -> batteria          R4850G2 Output Power
- *
- * Nessuna dipendenza e nessuna compilazione: è un web component in JavaScript
- * puro. Gli entity_id predefiniti sono quelli che Home Assistant crea per il
- * dispositivo ESPHome "solar-combo" (prefisso "solar_combo"); con "prefix" si
- * cambia il prefisso, con "inverter" il nome dell'inverter nelle sue entità
- * (default "smg_ii", da inv_name: SMG-II), con "entities" si sostituisce la
- * singola entità.
- */
-
+/* Solar Combo Card 0.5.0 - https://github.com/deltamike66/solar-combo-card - MIT */
 const VERSION = "0.5.0";
 
-// Entità predefinite: "{p}" diventa il prefisso del dispositivo (default
-// solar_combo), "{inv}" il nome dell'inverter nelle sue entità (default smg_ii)
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
   pv1_voltage: "sensor.{p}_{inv}_pv1_voltage",
@@ -54,7 +28,6 @@ const ENTITA = {
   charge_state: "sensor.{p}_stato_gestione_carica",
   grid_power: "sensor.{p}_r4850g2_input_power",
   grid_voltage: "sensor.{p}_r4850g2_input_voltage",
-  // Gestione automatica della carica (parametri e stato)
   charge_start: "number.{p}_carica_avvio_sotto_cella_min",
   charge_stop: "number.{p}_carica_stop_sopra_cella_min",
   charge_confirm: "number.{p}_carica_conferma_avvio",
@@ -68,26 +41,15 @@ const ENTITA = {
   cell_max_charge: "sensor.{p}_soglia_cella_max_carica",
   cell_max_protection: "sensor.{p}_soglia_cella_max_protezione",
   days_since_full: "sensor.{p}_giorni_dall_ultima_carica_completa",
-  // Facoltativa: potenza inverter <-> batteria letta da un sensore (positiva
-  // verso la batteria). Se manca si calcola come BMS Potenza - R4850G2 Output.
   inverter_battery_power: null,
 };
 
-// Soglia predefinita (W): sotto questa potenza i flussi sono fermi e gli
-// indicatori spenti. Si cambia con l'opzione "threshold" della card.
 const SOGLIA_W = 10;
 
-// Velocità dei flussi: un ciclo dell'animazione dura DUR_BASE / (1 + W / fondo
-// scala) secondi, ma non meno di DUR_BASE / velocità massima. Fondo scala
-// (opzione "flow_scale", W) = potenza a cui la velocità raddoppia rispetto a
-// quella di partenza; velocità massima (opzione "flow_max_speed") = multiplo
-// della velocità di partenza oltre il quale i puntini non accelerano più.
 const DUR_BASE = 1.5;
 const FONDO_SCALA_W = 500;
 const VELOCITA_MAX = 6;
 
-// Geometria (viewBox 0 0 440 380): centro dei nodi; ogni illustrazione sta in
-// un riquadro di 60 x 60 centrato sul nodo
 const L = 60;
 const NODI = {
   pv1: { x: 70, y: 90, disegno: "pannello" },
@@ -99,7 +61,6 @@ const NODI = {
   rete: { x: 390, y: 310, disegno: "traliccio" },
 };
 
-// Flussi: percorso nel verso positivo (da sorgente a destinazione)
 const FLUSSI = {
   pv1: { d: "M 70 116 C 70 150, 130 140, 130 175", colore: "var(--scc-solare)" },
   pv2: { d: "M 190 116 C 190 150, 130 140, 130 175", colore: "var(--scc-solare)" },
@@ -109,10 +70,6 @@ const FLUSSI = {
   rete: { d: "M 381 310 L 295 310", colore: "var(--scc-rete)" },
 };
 
-// Illustrazioni in coordinate locali 0..60. Le parti con una classe cambiano
-// con lo stato: .sole (FV che produce), .finestra (casa che consuma),
-// .livello e .fulmine (SOC e carica della batteria), .led (R4850G2 acceso),
-// .scintilla (rete che fornisce energia).
 const DISEGNI = {
   pannello: `
     <g class="sole">
@@ -196,7 +153,6 @@ const DISEGNI = {
     <circle cx="14" cy="29" r="1.8" fill="#78909c"/><circle cx="46" cy="29" r="1.8" fill="#78909c"/>`,
 };
 
-// Entità da aprire col clic su ogni nodo
 const CLIC = {
   pv1: "pv1_power", pv2: "pv2_power", inverter: "inverter_mode", casa: "load_power",
   batteria: "battery_soc", r4850: "charger_power", rete: "grid_power",
@@ -239,7 +195,6 @@ class SolarComboCard extends HTMLElement {
     return 7;
   }
 
-  // ------------------------------------------------------------------ lettura
   _stato(k) {
     const id = this._ent[k];
     return id && this._hass ? this._hass.states[id] : undefined;
@@ -263,7 +218,6 @@ class SolarComboCard extends HTMLElement {
     return Math.abs(w) >= 1000 ? `${this._fmt(w / 1000, 2)} kW` : `${this._fmt(w)} W`;
   }
 
-  // ---------------------------------------------------------------- disegno
   _costruisci() {
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     const nodi = Object.entries(NODI).map(([k, n]) => `
@@ -344,7 +298,6 @@ class SolarComboCard extends HTMLElement {
     if (el && el.textContent !== s) el.textContent = s;
   }
 
-  // Anima un flusso: verso dal segno, velocità dalla potenza
   _flusso(k, w) {
     const g = this.shadowRoot.querySelector(`[data-flusso="${k}"]`);
     const attivo = Number.isFinite(w) && Math.abs(w) >= this._soglia;
@@ -361,7 +314,6 @@ class SolarComboCard extends HTMLElement {
     this.shadowRoot.querySelector(`[data-nodo="${k}"]`).classList.toggle(classe, !!si);
   }
 
-  // Riempimento della batteria: altezza dal SOC, colore rosso / arancio / verde
   _livelloBatteria(soc) {
     const r = this.shadowRoot.querySelector('[data-nodo="batteria"] .livello');
     const f = Number.isFinite(soc) ? Math.max(0, Math.min(100, soc)) / 100 : 0;
@@ -395,7 +347,6 @@ class SolarComboCard extends HTMLElement {
     if (!this._config || !this._hass) return;
     if (!this._costruita) this._costruisci();
 
-    // stringhe FV
     let pvTot = 0;
     for (const n of ["pv1", "pv2"]) {
       const p = this._num(`${n}_power`);
@@ -406,7 +357,6 @@ class SolarComboCard extends HTMLElement {
       if (Number.isFinite(p)) pvTot += p;
     }
 
-    // inverter e casa
     const modo = this._stato("inverter_mode");
     this._testo("inv_modo", modo ? modo.state : "—");
     this._testo("inv_temp", `${this._fmt(this._num("inverter_temp"))} °C`);
@@ -416,7 +366,6 @@ class SolarComboCard extends HTMLElement {
     this._flusso("casa", casa);
     this._nodo("casa", "attivo", casa >= this._soglia);
 
-    // batteria
     const soc = this._num("battery_soc");
     const pBatt = this._num("battery_power");
     this._testo("soc", `${this._fmt(soc)} %`);
@@ -427,7 +376,6 @@ class SolarComboCard extends HTMLElement {
     this._livelloBatteria(soc);
     this._nodo("batteria", "in-carica", pBatt >= this._soglia);
 
-    // R4850G2 e rete
     const pR48 = this._num("charger_power");
     const standby = this._stato("charger_standby");
     const auto = this._stato("charge_auto");
@@ -444,34 +392,26 @@ class SolarComboCard extends HTMLElement {
     this._flusso("rete", pRete);
     this._nodo("rete", "attivo", pRete >= this._soglia);
 
-    // inverter <-> batteria (positivo verso la batteria)
     let pInvBatt = this._num("inverter_battery_power");
     if (!Number.isFinite(pInvBatt)) pInvBatt = pBatt - (Number.isFinite(pR48) ? pR48 : 0);
     this._testo("inv_batt", Number.isFinite(pInvBatt) && Math.abs(pInvBatt) >= this._soglia
       ? `${pInvBatt > 0 ? "↓" : "↑"} ${this._potenza(Math.abs(pInvBatt))}` : "");
     this._flusso("batteria", pInvBatt);
 
-    // da dove prende energia la casa: sole se le stringhe producono, batteria
-    // se la batteria sta dando energia all'inverter (anche tutti e due)
     const consuma = casa >= this._soglia;
     this._nodo("casa", "da-solare", consuma && pvTot >= this._soglia);
     const daBatteria = consuma && pInvBatt <= -this._soglia;
     this._nodo("casa", "da-batteria", daBatteria);
-    // se intanto il R4850G2 carica dalla rete, l'energia della casa viene dalla
-    // rete attraverso il bus della batteria: batteria e traliccio insieme
     this._nodo("casa", "da-rete", daBatteria && pR48 >= this._soglia);
 
-    // gestione automatica della carica
     if (this._config.show_charge !== false) this._aggiornaCarica(cmin);
 
-    // piede: allarmi del BMS
     const allarmi = this._stato("bms_alarms");
     const a = allarmi && !["", "unknown", "unavailable"].includes(allarmi.state) ? allarmi.state : "";
     this._testo("allarmi", a ? `Allarmi BMS: ${a}` : "");
   }
 }
 
-// Pannello della gestione automatica: ogni riga apre la sua entità principale
 const RIGHE_CARICA = [
   ["Stato", "c_stato", "charge_state"],
   ["Avvio", "c_avvio", "charge_start"],

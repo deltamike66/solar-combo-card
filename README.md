@@ -20,8 +20,6 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 - il LED verde, con un alone che pulsa, quando il R4850G2 è acceso;
 - la scintilla sul traliccio quando la rete fornisce energia.
 
-L'anteprima è generata con dati finti da `dev/anteprima.html`.
-
 | Flusso | Potenza mostrata |
 |---|---|
 | PV1, PV2 → inverter | potenza di ogni stringa |
@@ -127,17 +125,3 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `inverter_battery_power` | nessuna: se la imposti (positiva verso la batteria) sostituisce il calcolo *BMS Potenza* − *R4850G2 Output Power* |
 
 Il SOC mostrato è quello del BMS, poco affidabile d'inverno: la logica di carica della centralina non lo usa.
-
-## Sviluppo
-
-La card si sviluppa nel repository del progetto solar-combo, nella cartella `homeassistant/solar-combo-card`; il repository [solar-combo-card](https://github.com/deltamike66/solar-combo-card) ne è la copia pubblicata per il Marketplace (non modificarlo direttamente).
-
-```bash
-# dalla cartella della card
-python3 -m http.server 8000
-# http://localhost:8000/dev/anteprima.html?scenario=giorno   (giorno | notte | carica)
-```
-
-La pagina carica `dist/solar-combo-card.js` con dati finti, in tema chiaro e scuro; `ha-card` è sostituito da un segnaposto. Per un controllo veloce della sintassi: `node --check dist/solar-combo-card.js`.
-
-A ogni rilascio aggiorna `VERSION` in testa al file JavaScript, fai commit nel progetto solar-combo e lancia `scripts/pubblica_card.sh`: copia la cartella nel repository solar-combo-card e crea la release `v<VERSION>`.
