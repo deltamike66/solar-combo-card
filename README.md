@@ -50,14 +50,14 @@ Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, l
 
 La card è un solo file JavaScript, senza dipendenze e senza compilazione: `dist/solar-combo-card.js`.
 
-### Con il Marketplace (HACS integrato, Home Assistant 2026.11 e successivi)
+### Con HACS
 
-Dalla 2026.11 HACS è integrato in Home Assistant come **Marketplace**.
+1. Apri **HACS**, menu **⋮** in alto a destra → **Archivi digitali personalizzati**.
+2. In **Archivio digitale** incolla `https://github.com/deltamike66/solar-combo-card`, come **Tipo** scegli **Dashboard** e premi **Aggiungi**.
+3. Cerca **Solar Combo Card** in HACS, aprila e premi **Scarica**: la risorsa viene aggiunta da sola.
+4. Ricarica la pagina del browser.
 
-1. **Impostazioni → Marketplace**, in alto a destra **Add from link**: incolla `deltamike66/solar-combo-card` e, se chiede il tipo, scegli **Dashboard**. La prima volta va collegato l'account GitHub.
-2. Cerca **Solar Combo Card** nel Marketplace e installala: la risorsa viene aggiunta da sola. Gli aggiornamenti arrivano come nuove release del repository.
-
-Con HACS separato (versioni fino alla 2026.10): HACS → ⋮ → **Repository personalizzati**, indirizzo `deltamike66/solar-combo-card`, categoria **Dashboard**.
+Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
 ### A mano
 
@@ -72,9 +72,9 @@ Con HACS separato (versioni fino alla 2026.10): HACS → ⋮ → **Repository pe
          type: module
    ```
 
-   Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (card installate dal Marketplace), vanno elencate anche loro (il Marketplace mostra la riga da aggiungere).
+   Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.5.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.6.0`).
 
 ## Configurazione
 
@@ -103,6 +103,7 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `pv2_power`, `pv2_voltage`, `pv2_current` | `sensor.{p}_{inv}_pv2_power`, `_voltage`, `_current` |
 | `inverter_mode` | `sensor.{p}_{inv}_operation_mode` |
 | `inverter_temp` | `sensor.{p}_{inv}_temperature` |
+| `room_temp` | `sensor.{p}_temperatura_locale_inverter` (sonda DS18B20 del locale) |
 | `load_power` | `sensor.{p}_{inv}_output_active_power` |
 | `load_voltage` | `sensor.{p}_{inv}_output_effective_voltage` |
 | `battery_soc` | `sensor.{p}_bms_state_of_charge` |

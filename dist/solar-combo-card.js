@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.5.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.5.0";
+/* Solar Combo Card 0.6.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.6.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -10,6 +10,7 @@ const ENTITA = {
   pv2_current: "sensor.{p}_{inv}_pv2_current",
   inverter_mode: "sensor.{p}_{inv}_operation_mode",
   inverter_temp: "sensor.{p}_{inv}_temperature",
+  room_temp: "sensor.{p}_temperatura_locale_inverter",
   load_power: "sensor.{p}_{inv}_output_active_power",
   load_voltage: "sensor.{p}_{inv}_output_effective_voltage",
   battery_soc: "sensor.{p}_bms_state_of_charge",
@@ -250,6 +251,7 @@ class SolarComboCard extends HTMLElement {
           <text class="tit fine" x="96" y="190">Inverter</text>
           <text class="sub fine" x="96" y="205" data-t="inv_modo"></text>
           <text class="sub fine" x="96" y="219" data-t="inv_temp"></text>
+          <text class="sub fine" x="96" y="233" data-t="locale_temp"></text>
           <!-- casa -->
           <text class="tit" x="340" y="164">Casa</text>
           <text class="val" x="340" y="244" data-t="casa"></text>
@@ -360,6 +362,7 @@ class SolarComboCard extends HTMLElement {
     const modo = this._stato("inverter_mode");
     this._testo("inv_modo", modo ? modo.state : "—");
     this._testo("inv_temp", `${this._fmt(this._num("inverter_temp"))} °C`);
+    this._testo("locale_temp", `locale ${this._fmt(this._num("room_temp"), 1)} °C`);
     const casa = this._num("load_power");
     this._testo("casa", this._potenza(casa));
     this._testo("casa_sub", `${this._fmt(this._num("load_voltage"))} V`);
