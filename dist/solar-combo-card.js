@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.7.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.7.0";
+/* Solar Combo Card 0.8.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.8.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -162,6 +162,26 @@ const CLIC = {
   batteria: "battery_soc", r4850: "charger_power", rete: "grid_power",
 };
 
+const STORICO = {
+  pv1: ["pv1_power"], pv1_sub: ["pv1_voltage", "pv1_current"],
+  pv2: ["pv2_power"], pv2_sub: ["pv2_voltage", "pv2_current"],
+  fv_tot: ["pv1_power", "pv2_power"],
+  inv_modo: ["inverter_mode"], inv_temp: ["inverter_temp"], locale_temp: ["room_temp"],
+  casa: ["load_power"], casa_sub: ["load_voltage"],
+  inv_batt: ["inverter_battery_power", "battery_power", "charger_power"],
+  soc: ["battery_soc"], batt_p: ["battery_power"], batt_v: ["battery_voltage", "battery_current"],
+  celle: ["cell_min", "cell_max", "cell_delta"],
+  r48_stato: ["charger_standby", "charge_auto"], r48: ["charger_power"],
+  r48_sub: ["charger_voltage", "charger_current"],
+  rete: ["grid_power"], rete_sub: ["grid_voltage"],
+  allarmi: ["bms_alarms"],
+  auto: ["charge_auto"], c_stato: ["charge_state"],
+  c_avvio: ["charge_start", "charge_confirm"], c_stop: ["charge_stop", "charge_min_ah"],
+  c_ah: ["charged_ah", "cell_min"], c_r48: ["charge_voltage", "charge_current", "charge_margin"],
+  c_rich: ["charge_current_req"], c_cmax: ["cell_max_charge", "cell_max_protection"],
+  c_completa: ["full_charge_days", "days_since_full"],
+};
+
 class SolarComboCard extends HTMLElement {
   static getStubConfig() {
     return { prefix: "solar_combo" };
@@ -290,8 +310,11 @@ class SolarComboCard extends HTMLElement {
     this.shadowRoot.querySelectorAll(".nodo").forEach((g) => {
       g.addEventListener("click", () => this._piuInfo(this._ent[CLIC[g.dataset.nodo]]));
     });
-    this.shadowRoot.querySelectorAll("[data-info]").forEach((el) => {
-      el.addEventListener("click", () => this._piuInfo(this._ent[el.dataset.info]));
+    this.shadowRoot.querySelectorAll("[data-t], [data-s]").forEach((el) => {
+      const k = el.dataset.s || el.dataset.t;
+      if (!STORICO[k]) return;
+      el.classList.add("storico");
+      el.addEventListener("click", (e) => { e.stopPropagation(); this._storico(STORICO[k]); });
     });
     this._costruita = true;
   }
@@ -301,6 +324,15 @@ class SolarComboCard extends HTMLElement {
     const ev = new Event("hass-more-info", { bubbles: true, composed: true });
     ev.detail = { entityId };
     this.dispatchEvent(ev);
+  }
+
+  _storico(chiavi) {
+    let k = chiavi;
+    if (k[0] === "inverter_battery_power") k = this._ent.inverter_battery_power ? [k[0]] : k.slice(1);
+    const ids = [...new Set(k.map((c) => this._ent[c]).filter(Boolean))];
+    if (!ids.length) return;
+    history.pushState(null, "", `/history?entity_id=${encodeURIComponent(ids.join(","))}`);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
   _testo(k, s) {
@@ -428,24 +460,24 @@ class SolarComboCard extends HTMLElement {
 }
 
 const RIGHE_CARICA = [
-  ["Stato", "c_stato", "charge_state"],
-  ["Avvio", "c_avvio", "charge_start"],
-  ["Stop", "c_stop", "charge_stop"],
-  ["Caricati", "c_ah", "charged_ah"],
-  ["R4850G2", "c_r48", "charge_voltage"],
-  ["Corrente richiesta", "c_rich", "charge_current_req"],
-  ["Cella max", "c_cmax", "cell_max_charge"],
-  ["Carica completa", "c_completa", "full_charge_days"],
+  ["Stato", "c_stato"],
+  ["Avvio", "c_avvio"],
+  ["Stop", "c_stop"],
+  ["Caricati", "c_ah"],
+  ["R4850G2", "c_r48"],
+  ["Corrente richiesta", "c_rich"],
+  ["Cella max", "c_cmax"],
+  ["Carica completa", "c_completa"],
 ];
 const PANNELLO_CARICA = `
   <div class="carica">
-    <div class="testata" data-info="charge_auto">
+    <div class="testata" data-s="auto">
       <span>Gestione automatica carica</span>
       <span class="badge" data-t="auto"></span>
     </div>
     <div class="griglia">
-      ${RIGHE_CARICA.map(([et, k, info]) =>
-        `<div class="et" data-info="${info}">${et}</div><div class="v" data-info="${info}" data-t="${k}"></div>`).join("")}
+      ${RIGHE_CARICA.map(([et, k]) =>
+        `<div class="et" data-s="${k}">${et}</div><div class="v" data-t="${k}"></div>`).join("")}
     </div>
   </div>`;
 
@@ -502,8 +534,10 @@ const STILE = `
            background: var(--scc-caricatore); color: #fff; }
   .badge.spenta { background: var(--disabled-text-color, #9e9e9e); }
   .griglia { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; }
-  .griglia .et { color: var(--secondary-text-color); cursor: pointer; }
-  .griglia .v { color: var(--primary-text-color); cursor: pointer; }
+  .griglia .et { color: var(--secondary-text-color); }
+  .griglia .v { color: var(--primary-text-color); }
+  .storico { cursor: pointer; }
+  .storico:hover { text-decoration: underline; }
   .piede { font-size: 12px; color: var(--secondary-text-color); padding: 4px 4px 0; }
   .allarme { color: var(--error-color, #db4437); font-weight: 600; }
 `;
