@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.8.1 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.8.1";
+/* Solar Combo Card 0.9.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.9.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -21,6 +21,8 @@ const ENTITA = {
   cell_max: "sensor.{p}_bms_cella_massima",
   cell_delta: "sensor.{p}_bms_delta_celle",
   bms_alarms: "sensor.{p}_bms_allarmi",
+  inverter_fault: "sensor.{p}_{inv}_fault",
+  inverter_warning: "sensor.{p}_{inv}_warning",
   charger_power: "sensor.{p}_r4850g2_output_power",
   charger_voltage: "sensor.{p}_r4850g2_output_voltage",
   charger_current: "sensor.{p}_r4850g2_output_current",
@@ -174,7 +176,7 @@ const STORICO = {
   r48_stato: ["charger_standby", "charge_auto"], r48: ["charger_power"],
   r48_sub: ["charger_voltage", "charger_current"],
   rete: ["grid_power"], rete_sub: ["grid_voltage"],
-  allarmi: ["bms_alarms"],
+  allarmi: ["bms_alarms"], allarmi_inv: ["inverter_fault", "inverter_warning"],
   auto: ["charge_auto"], c_stato: ["charge_state"],
   c_avvio: ["charge_start", "charge_confirm"], c_stop: ["charge_stop", "charge_min_ah"],
   c_ah: ["charged_ah", "cell_min"], c_r48: ["charge_voltage", "charge_current", "charge_margin"],
@@ -304,6 +306,7 @@ class SolarComboCard extends HTMLElement {
         </svg>
         ${this._config.show_charge === false ? "" : PANNELLO_CARICA}
         <div class="piede">
+          <div class="allarme" data-t="allarmi_inv"></div>
           <div class="allarme" data-t="allarmi"></div>
         </div>
       </ha-card>`;
@@ -454,8 +457,13 @@ class SolarComboCard extends HTMLElement {
 
     if (this._config.show_charge !== false) this._aggiornaCarica(cmin);
 
-    const allarmi = this._stato("bms_alarms");
-    const a = allarmi && !["", "unknown", "unavailable"].includes(allarmi.state) ? allarmi.state : "";
+    const txt = (k) => {
+      const e = this._stato(k);
+      return e && !["", "unknown", "unavailable"].includes(e.state) ? e.state : "";
+    };
+    const inv = [txt("inverter_fault"), txt("inverter_warning")].filter((x) => x).join("; ");
+    this._testo("allarmi_inv", inv ? `Allarmi inverter: ${inv}` : "");
+    const a = txt("bms_alarms");
     this._testo("allarmi", a ? `Allarmi BMS: ${a}` : "");
   }
 }
