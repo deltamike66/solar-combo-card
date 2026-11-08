@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.8.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.8.0";
+/* Solar Combo Card 0.8.1 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.8.1";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -374,7 +374,8 @@ class SolarComboCard extends HTMLElement {
     const stato = this._stato("charge_state");
     this._testo("c_stato", stato ? stato.state : "—");
     const n = (k, dec) => this._fmt(this._num(k), dec);
-    this._testo("c_avvio", `cella min < ${n("charge_start", 2)} V per ${n("charge_confirm", 1)} min`);
+    const conf = this._num("charge_confirm");
+    this._testo("c_avvio", `cella min < ${n("charge_start", 2)} V ` + (conf === 0 ? "subito" : `per ${n("charge_confirm")} s`));
     this._testo("c_stop", `cella min > ${n("charge_stop", 2)} V e almeno ${n("charge_min_ah")} Ah`);
     this._testo("c_ah", `${n("charged_ah", 1)} Ah · cella min ora ${this._fmt(cmin, 3)} V`);
     this._testo("c_r48", `${n("charge_voltage", 1)} V · ${n("charge_current", 1)} A (+ ${n("charge_margin", 1)} A sul consumo)`);
