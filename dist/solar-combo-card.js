@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.11.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.11.0";
+/* Solar Combo Card 0.11.1 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.11.1";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -454,7 +454,9 @@ class SolarComboCard extends SccBase {
     this._livelloBatteria(soc);
     this._nodo("batteria", "in-carica", pBatt >= this._soglia);
 
-    const pR48 = this._num("charger_power");
+    let pR48 = this._num("charger_power");
+    const vR48 = this._num("charger_voltage"), iR48 = this._num("charger_current");
+    if (!(pR48 > 0) && Number.isFinite(vR48) && Number.isFinite(iR48) && vR48 * iR48 > 0) pR48 = vR48 * iR48;
     const standby = this._stato("charger_standby");
     const auto = this._stato("charge_auto");
     const statoR48 = standby ? (standby.state === "on" ? "STANDBY" : "ACCESO") : "—";

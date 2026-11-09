@@ -1,6 +1,13 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.11.0`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.11.1`).
+
+## 0.11.1
+
+**Flusso del R4850G2 corretto.** Su alcuni R4850G2 la potenza d'uscita (*R4850G2 Output Power*) vale sempre 0 anche mentre carica. La card mostrava allora «0 W», nessun flusso dal R4850G2 alla batteria e una freccia falsa dall'inverter alla batteria. Ora, quando quella potenza è 0 o manca, la card la calcola da tensione × corrente d'uscita.
+
+- Perché aggiornare: con il R4850G2 acceso vedi di nuovo il percorso rete → R4850G2 → batteria → inverter, e la potenza giusta del caricabatterie.
+- Il firmware solar-combo aggiornato calcola già la potenza allo stesso modo.
 
 ## 0.11.0
 
