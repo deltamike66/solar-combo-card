@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.10.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.10.0";
+/* Solar Combo Card 0.11.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.11.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -198,41 +198,18 @@ const STORICO = {
   c_completa: ["full_charge_days", "days_since_full"],
 };
 
-class SolarComboCard extends HTMLElement {
-  static getStubConfig() {
-    return { prefix: "solar_combo" };
+function entitaDa(tabella, prefisso, inverter, sostituzioni) {
+  const ent = {};
+  for (const [k, v] of Object.entries(tabella)) {
+    ent[k] = v ? v.replace("{p}", prefisso).replace("{inv}", inverter) : null;
   }
+  return Object.assign(ent, sostituzioni || {});
+}
 
-  setConfig(config) {
-    if (!config) throw new Error("Configurazione mancante");
-    const prefisso = config.prefix || "solar_combo";
-    const inverter = config.inverter || "smg_ii";
-    const ent = {};
-    for (const [k, v] of Object.entries(ENTITA)) {
-      ent[k] = v ? v.replace("{p}", prefisso).replace("{inv}", inverter) : null;
-    }
-    Object.assign(ent, config.entities || {});
-    const soglia = Number(config.threshold);
-    this._soglia = config.threshold !== undefined && Number.isFinite(soglia) && soglia >= 0 ? soglia : SOGLIA_W;
-    const positivo = (v, def, min) => {
-      const n = Number(v);
-      return v !== undefined && Number.isFinite(n) && n >= min ? n : def;
-    };
-    this._fondoScala = positivo(config.flow_scale, FONDO_SCALA_W, 1);
-    this._durMin = DUR_BASE / positivo(config.flow_max_speed, VELOCITA_MAX, 1);
-    this._config = config;
-    this._ent = ent;
-    this._costruita = false;
-    if (this._hass) this._aggiorna();
-  }
-
+class SccBase extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._aggiorna();
-  }
-
-  getCardSize() {
-    return 7;
   }
 
   _stato(k) {
@@ -256,6 +233,54 @@ class SolarComboCard extends HTMLElement {
   _potenza(w) {
     if (!Number.isFinite(w)) return "— W";
     return Math.abs(w) >= 1000 ? `${this._fmt(w / 1000, 2)} kW` : `${this._fmt(w)} W`;
+  }
+
+  _piuInfo(entityId) {
+    if (!entityId) return;
+    const ev = new Event("hass-more-info", { bubbles: true, composed: true });
+    ev.detail = { entityId };
+    this.dispatchEvent(ev);
+  }
+
+  _apriStorico(ids) {
+    ids = [...new Set(ids.filter(Boolean))];
+    if (!ids.length) return;
+    history.pushState(null, "", `/history?entity_id=${encodeURIComponent(ids.join(","))}`);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  _testo(k, s) {
+    const el = this.shadowRoot.querySelector(`[data-t="${k}"]`);
+    if (el && el.textContent !== s) el.textContent = s;
+  }
+}
+
+class SolarComboCard extends SccBase {
+  static getStubConfig() {
+    return { prefix: "solar_combo" };
+  }
+
+  setConfig(config) {
+    if (!config) throw new Error("Configurazione mancante");
+    const prefisso = config.prefix || "solar_combo";
+    const inverter = config.inverter || "smg_ii";
+    const ent = entitaDa(ENTITA, prefisso, inverter, config.entities);
+    const soglia = Number(config.threshold);
+    this._soglia = config.threshold !== undefined && Number.isFinite(soglia) && soglia >= 0 ? soglia : SOGLIA_W;
+    const positivo = (v, def, min) => {
+      const n = Number(v);
+      return v !== undefined && Number.isFinite(n) && n >= min ? n : def;
+    };
+    this._fondoScala = positivo(config.flow_scale, FONDO_SCALA_W, 1);
+    this._durMin = DUR_BASE / positivo(config.flow_max_speed, VELOCITA_MAX, 1);
+    this._config = config;
+    this._ent = ent;
+    this._costruita = false;
+    if (this._hass) this._aggiorna();
+  }
+
+  getCardSize() {
+    return 7;
   }
 
   _costruisci() {
@@ -339,25 +364,10 @@ class SolarComboCard extends HTMLElement {
     this._costruita = true;
   }
 
-  _piuInfo(entityId) {
-    if (!entityId) return;
-    const ev = new Event("hass-more-info", { bubbles: true, composed: true });
-    ev.detail = { entityId };
-    this.dispatchEvent(ev);
-  }
-
   _storico(chiavi) {
     let k = chiavi;
     if (k[0] === "inverter_battery_power") k = this._ent.inverter_battery_power ? [k[0]] : k.slice(1);
-    const ids = [...new Set(k.map((c) => this._ent[c]).filter(Boolean))];
-    if (!ids.length) return;
-    history.pushState(null, "", `/history?entity_id=${encodeURIComponent(ids.join(","))}`);
-    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
-  }
-
-  _testo(k, s) {
-    const el = this.shadowRoot.querySelector(`[data-t="${k}"]`);
-    if (el && el.textContent !== s) el.textContent = s;
+    this._apriStorico(k.map((c) => this._ent[c]));
   }
 
   _flusso(k, w) {
@@ -577,13 +587,345 @@ const STILE = `
   .allarme { color: var(--error-color, #db4437); font-weight: 600; }
 `;
 
+const BMS_ENTITA = {
+  soc: "sensor.{p}_bms_state_of_charge",
+  voltage: "sensor.{p}_bms_tensione_totale",
+  current: "sensor.{p}_bms_corrente",
+  power: "sensor.{p}_bms_potenza",
+  capacity_total: "sensor.{p}_bms_capacita_totale",
+  capacity_remaining: "sensor.{p}_bms_capacita_residua",
+  cell_min: "sensor.{p}_bms_cella_minima",
+  cell_max: "sensor.{p}_bms_cella_massima",
+  cell_avg: "sensor.{p}_bms_media_celle",
+  cell_delta: "sensor.{p}_bms_delta_celle",
+  temp_mos: "sensor.{p}_bms_temperatura_mos",
+  temp_1: "sensor.{p}_bms_temperatura_1",
+  temp_2: "sensor.{p}_bms_temperatura_2",
+  temp_3: "sensor.{p}_bms_temperatura_3",
+  temp_4: "sensor.{p}_bms_temperatura_4",
+  balancing: "binary_sensor.{p}_bms_bilanciamento_attivo",
+  balancing_current: "sensor.{p}_bms_corrente_bilanciamento",
+  charge_mos: "binary_sensor.{p}_bms_mos_carica_attivo",
+  discharge_mos: "binary_sensor.{p}_bms_mos_scarica_attivo",
+  cycles: "sensor.{p}_bms_cicli_di_carica",
+  alarms: "sensor.{p}_bms_allarmi",
+  cell_count: "number.{p}_bms_numero_celle",
+};
+const BMS_CELLA = "sensor.{p}_bms_cella_{n}";
+const BMS_CELLE_DEF = 16;
+const BMS_CELLE_MAX = 32;
+
+const BMS_SOGLIA_A = 0.5;
+
+const BMS_STORICO = {
+  v: ["voltage"], i: ["current"], soc: ["soc"],
+  cap_tot: ["capacity_total"], cap_res: ["capacity_remaining"],
+  cmax: ["cell_max", "cell_min", "cell_delta"], cmin: ["cell_max", "cell_min", "cell_delta"],
+  delta: ["cell_delta"], temp: ["temp_1", "temp_2", "temp_3", "temp_4", "temp_mos"],
+  pwr: ["power"], cicli: ["cycles"], allarme: ["alarms"],
+  chg: ["charge_mos", "discharge_mos"], dch: ["charge_mos", "discharge_mos"],
+  media: ["cell_avg"], bil: ["balancing", "balancing_current"],
+  temps: ["temp_mos", "temp_1", "temp_2", "temp_3", "temp_4"],
+  allarmi_txt: ["alarms"],
+};
+
+const BMS_VOCI = [
+  ["Cella max", "cmax", "cell_max"],
+  ["Temp (°C)", "temp", "temp_1,temp_2,temp_3,temp_4"],
+  ["Allarmi", "allarme", "alarms"],
+  ["Cella min", "cmin", "cell_min"],
+  ["Potenza (kW)", "pwr", "power"],
+  ["CHG", "chg", "charge_mos"],
+  ["Δ celle", "delta", "cell_delta"],
+  ["Cicli", "cicli", "cycles"],
+  ["DCH", "dch", "discharge_mos"],
+];
+
+class SolarComboBmsCard extends SccBase {
+  static getStubConfig() {
+    return { prefix: "solar_combo" };
+  }
+
+  setConfig(config) {
+    if (!config) throw new Error("Configurazione mancante");
+    this._prefisso = config.prefix || "solar_combo";
+    this._ent = entitaDa(BMS_ENTITA, this._prefisso, "", config.entities);
+    const soglia = Number(config.threshold);
+    this._soglia = config.threshold !== undefined && Number.isFinite(soglia) && soglia >= 0 ? soglia : BMS_SOGLIA_A;
+    const colonne = Number(config.cell_columns);
+    this._colonne = Number.isInteger(colonne) && colonne >= 1 && colonne <= 8 ? colonne : 4;
+    this._config = config;
+    this._costruita = false;
+    if (this._hass) this._aggiorna();
+  }
+
+  getCardSize() {
+    return 9;
+  }
+
+  _numeroCelle() {
+    const n = Number(this._config.cells !== undefined ? this._config.cells : this._num("cell_count"));
+    return Number.isInteger(n) && n >= 1 && n <= BMS_CELLE_MAX ? n : BMS_CELLE_DEF;
+  }
+
+  _idCella(n) {
+    const sost = this._config.entities && this._config.entities[`cell_${n}`];
+    return sost || BMS_CELLA.replace("{p}", this._prefisso).replace("{n}", n);
+  }
+
+  _numCella(n) {
+    const s = this._hass.states[this._idCella(n)];
+    const v = s ? parseFloat(s.state) : NaN;
+    return Number.isFinite(v) ? v : NaN;
+  }
+
+  _esiste(chiavi) {
+    return chiavi.split(",").some((k) => this._stato(k));
+  }
+
+  _costruisci(nCelle) {
+    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    const titolo = this._config.title !== undefined ? this._config.title : "JK-BMS";
+    const voci = BMS_VOCI.map(([et, k, req]) => `
+      <div class="voce" data-req="${req}"><span class="et">${et}:</span><span class="v" data-t="${k}"></span></div>`).join("");
+    const celle = Array.from({ length: nCelle }, (_, i) => `
+      <div class="cella" data-cella="${i + 1}"><span class="n">${i + 1}</span><span class="cv"></span></div>`).join("");
+    this.shadowRoot.innerHTML = `
+      <style>${BMS_STILE}</style>
+      <ha-card>
+        <div class="schermo">
+          <div class="testa">
+            <span class="nome">${titolo}</span>
+            <span class="frecce"><i>›</i><i>›</i><i>›</i><i>›</i></span>
+            <span class="verso" data-t="verso"></span>
+          </div>
+          <div class="misure">
+            <div class="misura"><span class="icona">V</span><span class="et">Tensione</span><span class="grande" data-t="v"></span></div>
+            <div class="misura"><span class="icona">A</span><span class="et">Corrente</span><span class="grande" data-t="i"></span></div>
+          </div>
+          <div class="centro">
+            <div class="anello">
+              <svg viewBox="0 0 100 100">
+                <circle class="pista" cx="50" cy="50" r="40"></circle>
+                <circle class="arco" cx="50" cy="50" r="40" pathLength="100" transform="rotate(-90 50 50)"></circle>
+                <g class="giro"><circle cx="50" cy="50" r="40" pathLength="100" transform="rotate(-90 50 50)"></circle></g>
+                <circle class="dentro" cx="50" cy="50" r="29"></circle>
+              </svg>
+              <span class="soc" data-t="soc"></span>
+            </div>
+            <div class="cap" data-req="capacity_total"><div class="num" data-t="cap_tot"></div><div class="et">Capacità totale (Ah)</div></div>
+            <div class="cap" data-req="capacity_remaining"><div class="num" data-t="cap_res"></div><div class="et">Capacità residua (Ah)</div></div>
+          </div>
+          <div class="voci">${voci}</div>
+          ${this._config.show_cells === false ? "" : `
+          <div class="pannello">
+            <div class="titolo-celle">Tensione celle</div>
+            <div class="info">
+              <span data-t="media" data-req="cell_avg"></span>
+              <span data-t="bil" data-req="balancing,balancing_current"></span>
+              <span data-t="temps" data-req="temp_mos,temp_1,temp_2,temp_3,temp_4"></span>
+            </div>
+            <div class="celle" style="grid-template-columns: repeat(${this._colonne}, 1fr)">${celle}</div>
+          </div>`}
+          <div class="allarmi-testo" data-t="allarmi_txt"></div>
+        </div>
+      </ha-card>`;
+    this.shadowRoot.querySelector(".anello").addEventListener("click", () => this._piuInfo(this._ent.soc));
+    this.shadowRoot.querySelectorAll("[data-t]").forEach((el) => {
+      const k = el.dataset.t;
+      if (!BMS_STORICO[k]) return;
+      el.classList.add("storico");
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._apriStorico(BMS_STORICO[k].map((c) => this._ent[c]));
+      });
+    });
+    this.shadowRoot.querySelectorAll("[data-cella]").forEach((el) => {
+      el.addEventListener("click", () => this._apriStorico([this._idCella(Number(el.dataset.cella))]));
+    });
+    this._nCelle = nCelle;
+    this._costruita = true;
+  }
+
+  _aggiorna() {
+    if (!this._config || !this._hass) return;
+    const nCelle = this._numeroCelle();
+    if (!this._costruita || nCelle !== this._nCelle) this._costruisci(nCelle);
+    const r = this.shadowRoot;
+
+    r.querySelectorAll("[data-req]").forEach((el) => {
+      el.classList.toggle("nascosto", !this._esiste(el.dataset.req));
+    });
+
+    const i = this._num("current");
+    this._testo("v", `${this._fmt(this._num("voltage"), 2)} V`);
+    this._testo("i", `${this._fmt(i, 1)} A`);
+    const verso = !Number.isFinite(i) ? "" : i >= this._soglia ? "carica" : i <= -this._soglia ? "scarica" : "riposo";
+    const schermo = r.querySelector(".schermo");
+    for (const v of ["carica", "scarica", "riposo"]) schermo.classList.toggle(v, verso === v);
+    this._testo("verso", { carica: "IN CARICA", scarica: "IN SCARICA", riposo: "A RIPOSO" }[verso] || "");
+
+    const soc = this._num("soc");
+    const f = Number.isFinite(soc) ? Math.max(0, Math.min(100, soc)) : 0;
+    const arco = r.querySelector(".arco");
+    arco.style.strokeDasharray = `${f} 100`;
+    arco.style.stroke = soc < 20 ? "var(--bms-rosso)" : soc < 40 ? "var(--bms-arancio)" : "var(--bms-verde)";
+    this._testo("soc", `${this._fmt(soc)}%`);
+    this._testo("cap_tot", this._fmt(this._num("capacity_total"), 1));
+    this._testo("cap_res", this._fmt(this._num("capacity_remaining"), 1));
+
+    const valori = [];
+    for (let n = 1; n <= nCelle; n++) valori.push(this._numCella(n));
+    const letti = valori.filter(Number.isFinite);
+    const vMax = letti.length ? Math.max(...letti) : NaN;
+    const vMin = letti.length ? Math.min(...letti) : NaN;
+    const nMax = letti.length > 1 && vMax > vMin ? valori.indexOf(vMax) + 1 : 0;
+    const nMin = letti.length > 1 && vMax > vMin ? valori.indexOf(vMin) + 1 : 0;
+    const cmax = this._num("cell_max"), cmin = this._num("cell_min");
+    this._testo("cmax", `${this._fmt(cmax, 3)} V` + (nMax ? ` (${nMax})` : ""));
+    this._testo("cmin", `${this._fmt(cmin, 3)} V` + (nMin ? ` (${nMin})` : ""));
+    this._testo("delta", `${this._fmt(this._num("cell_delta"))} mV`);
+
+    const sonde = ["temp_1", "temp_2", "temp_3", "temp_4"].map((k) => this._num(k)).filter(Number.isFinite);
+    this._testo("temp", sonde.length ? this._fmt(Math.max(...sonde)) : "—");
+    const p = this._num("power");
+    this._testo("pwr", this._fmt(p / 1000, 2));
+    this._testo("cicli", this._fmt(this._num("cycles")));
+
+    const a = this._stato("alarms");
+    const allarme = !!a && !["", "unknown", "unavailable"].includes(a.state);
+    this._testo("allarme", allarme ? "Allarme" : "Nessuno");
+    r.querySelector('[data-t="allarme"]').classList.toggle("rosso", allarme);
+    this._testo("allarmi_txt", allarme ? `Allarmi BMS: ${a.state}` : "");
+    for (const [k, ent] of [["chg", "charge_mos"], ["dch", "discharge_mos"]]) {
+      const s = this._stato(ent);
+      const on = !!s && s.state === "on";
+      this._testo(k, s ? (on ? "ON" : "OFF") : "—");
+      r.querySelector(`[data-t="${k}"]`).classList.toggle("rosso", !!s && !on);
+    }
+
+    if (this._config.show_cells === false) return;
+
+    this._testo("media", `Media ${this._fmt(this._num("cell_avg"), 3)} V`);
+    const bil = this._stato("balancing");
+    const bilOn = !!bil && bil.state === "on";
+    const ib = this._num("balancing_current");
+    this._testo("bil", `Bilanciamento ${bil ? (bilOn ? "ON" : "OFF") : "—"}` +
+      (Number.isFinite(ib) && (bilOn || Math.abs(ib) > 0) ? ` ${this._fmt(ib, 2)} A` : ""));
+    r.querySelector('[data-t="bil"]').classList.toggle("acceso", bilOn);
+    const temps = [["temp_mos", "MOS"], ["temp_1", "T1"], ["temp_2", "T2"], ["temp_3", "T3"], ["temp_4", "T4"]]
+      .filter(([k]) => this._stato(k))
+      .map(([k, et]) => `${et} ${this._fmt(this._num(k))}`);
+    this._testo("temps", temps.length ? `${temps.join(" · ")} °C` : "");
+
+    r.querySelectorAll("[data-cella]").forEach((el) => {
+      const n = Number(el.dataset.cella);
+      const v = valori[n - 1];
+      const t = `${this._fmt(v, 3)}V`;
+      const cv = el.querySelector(".cv");
+      if (cv.textContent !== t) cv.textContent = t;
+      el.classList.toggle("max", n === nMax);
+      el.classList.toggle("min", n === nMin);
+      el.classList.toggle("assente", !Number.isFinite(v));
+    });
+  }
+}
+
+const BMS_STILE = `
+  :host {
+    --bms-sfondo: #0d0f12;
+    --bms-riquadro: #1a1e23;
+    --bms-bordo: #3a4048;
+    --bms-testo: #e8eaed;
+    --bms-etichetta: #c3c8ce;
+    --bms-verde: #3ee65c;
+    --bms-azzurro: #4fc3f7;
+    --bms-rosso: #ff4d4d;
+    --bms-arancio: #ffa726;
+  }
+  ha-card { overflow: hidden; }
+  .schermo { background: var(--bms-sfondo); color: var(--bms-testo); padding: 10px 14px 12px;
+             font-family: inherit; }
+  .testa { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+  .nome { font-weight: 600; font-size: 1.05em; }
+  .verso { justify-self: end; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+           color: var(--bms-etichetta); }
+  .carica .verso { color: var(--bms-verde); }
+  .scarica .verso { color: var(--bms-arancio); }
+  .frecce { display: flex; gap: 1px; font-size: 22px; line-height: 1; font-weight: 700;
+            color: var(--bms-azzurro); }
+  .frecce i { font-style: normal; opacity: .25; }
+  .scarica .frecce { flex-direction: row-reverse; color: var(--bms-arancio); }
+  .scarica .frecce i { transform: scaleX(-1); }
+  .carica .frecce i, .scarica .frecce i { animation: bms-freccia 1.2s linear infinite; }
+  .frecce i:nth-child(2) { animation-delay: .3s !important; }
+  .frecce i:nth-child(3) { animation-delay: .6s !important; }
+  .frecce i:nth-child(4) { animation-delay: .9s !important; }
+  @keyframes bms-freccia { 0%, 100% { opacity: .25; } 25% { opacity: 1; } }
+  .misure { display: grid; grid-template-columns: 1fr 1fr; margin: 6px 0 2px; }
+  .misura { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .icona { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
+           border: 1.5px solid var(--bms-verde); border-radius: 50%; font-size: 11px; font-weight: 700;
+           color: var(--bms-verde); align-self: center; }
+  .misura .et { color: var(--bms-etichetta); font-size: 14px; }
+  .grande { color: var(--bms-verde); font-size: 26px; font-weight: 600; }
+  .centro { display: grid; grid-template-columns: 34% 1fr 1fr; align-items: center; margin: 4px 0 6px; }
+  .anello { position: relative; cursor: pointer; }
+  .anello svg { width: 100%; display: block; }
+  .anello circle { fill: none; stroke-width: 12; }
+  .anello .pista { stroke: #2a3036; }
+  .anello .arco { transition: stroke-dasharray .6s, stroke .6s; }
+  .anello .dentro { fill: var(--bms-sfondo); stroke: #2f353c; stroke-width: 1.5; }
+  .anello .giro { opacity: 0; transform-origin: 50px 50px; }
+  .anello .giro circle { stroke: var(--bms-azzurro); stroke-dasharray: 14 86; }
+  .carica .anello .giro { opacity: .9; animation: bms-giro 3s linear infinite; }
+  .scarica .anello .giro { opacity: .9; animation: bms-giro 3s linear infinite reverse; }
+  .scarica .anello .giro circle { stroke: var(--bms-arancio); }
+  @keyframes bms-giro { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .soc { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+         font-size: 20px; font-weight: 700; }
+  .cap { text-align: center; }
+  .cap .num { color: var(--bms-verde); font-size: 34px; font-weight: 600; line-height: 1.1; }
+  .cap .et { font-size: 11px; font-weight: 600; }
+  .voci { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 4px 10px; font-size: 13px; }
+  .voce { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .voce .et { color: var(--bms-etichetta); margin-right: 5px; }
+  .v { color: var(--bms-verde); font-weight: 600; }
+  .v.rosso { color: var(--bms-rosso); }
+  .pannello { margin-top: 10px; border: 1px solid var(--bms-bordo); border-radius: 6px;
+              background: var(--bms-riquadro); padding: 6px 8px 8px; }
+  .titolo-celle { text-align: center; font-size: 11px; color: var(--bms-etichetta); margin-bottom: 4px; }
+  .info { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 14px; font-size: 11px;
+          color: var(--bms-etichetta); margin-bottom: 6px; }
+  .info .acceso { color: var(--bms-azzurro); }
+  .celle { display: grid; gap: 4px 10px; font-size: 13px; }
+  .cella { display: flex; gap: 6px; align-items: baseline; cursor: pointer; white-space: nowrap; }
+  .cella .n { color: var(--bms-etichetta); font-size: 11px; min-width: 1.4em; text-align: right; }
+  .cella .cv { color: var(--bms-verde); font-weight: 600; }
+  .cella.max .cv { color: var(--bms-azzurro); }
+  .cella.min .cv { color: var(--bms-rosso); }
+  .cella.assente .cv { color: var(--bms-etichetta); }
+  .cella:hover .cv { text-decoration: underline; }
+  .allarmi-testo { color: var(--bms-rosso); font-size: 12px; font-weight: 600; margin-top: 6px; }
+  .allarmi-testo:empty { display: none; }
+  .nascosto { display: none !important; }
+  .storico { cursor: pointer; }
+  .storico:hover { text-decoration: underline; }
+`;
+
 customElements.define("solar-combo-card", SolarComboCard);
+customElements.define("solar-combo-bms-card", SolarComboBmsCard);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "solar-combo-card",
   name: "Solar Combo Card",
   description: "Flusso di energia dell'impianto solar-combo: FV, inverter SMG II, JK-BMS, R4850G2, casa e rete",
+  preview: true,
+}, {
+  type: "solar-combo-bms-card",
+  name: "Solar Combo BMS Card",
+  description: "Pacco batterie con JK-BMS: tensione, corrente, SOC, capacità, temperature e tensione di ogni cella",
   preview: true,
 });
 

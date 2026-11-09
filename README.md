@@ -11,6 +11,8 @@ Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-
 
 ![Anteprima](img/anteprima.png)
 
+Nello stesso file c'è anche la **[Solar Combo BMS Card](#solar-combo-bms-card)**, la card del pacco batterie con il JK-BMS.
+
 Le novità di ogni versione, e perché conviene aggiornare, sono in [CHANGELOG.md](CHANGELOG.md).
 
 Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. Alcuni dettagli seguono lo stato:
@@ -52,7 +54,7 @@ Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, l
 
 ## Installazione
 
-La card è un solo file JavaScript, senza dipendenze e senza compilazione: `dist/solar-combo-card.js`.
+La card è un solo file JavaScript, senza dipendenze e senza compilazione: `dist/solar-combo-card.js`. Lo stesso file contiene anche la Solar Combo BMS Card: installandolo si hanno tutte e due.
 
 ### Con HACS
 
@@ -78,7 +80,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.10.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.11.0`).
 
 ## Configurazione
 
@@ -132,3 +134,46 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `inverter_battery_power` | nessuna: se la imposti (positiva verso la batteria) sostituisce il calcolo *BMS Potenza* − *R4850G2 Output Power* |
 
 Il SOC mostrato è quello del BMS, poco affidabile d'inverno: la logica di carica della centralina non lo usa.
+
+## Solar Combo BMS Card
+
+Card del pacco batterie con il JK-BMS (`type: custom:solar-combo-bms-card`). Riprende lo stile del display del BMS: schermo scuro e valori in verde.
+
+![Anteprima della Solar Combo BMS Card](img/anteprima-bms.png)
+
+- **In alto**: tensione e corrente del pacco, con le frecce e la scritta del verso: IN CARICA (frecce azzurre verso destra), IN SCARICA (frecce arancio verso sinistra) o A RIPOSO (frecce spente).
+- **Al centro**: l'anello del SOC, verde, arancio sotto il 40% e rosso sotto il 20%. In carica ci gira sopra un tratto azzurro, in scarica uno arancio nel verso opposto. Accanto ci sono la capacità totale e quella residua in Ah.
+- **Sotto**: cella massima e minima, con tra parentesi il numero della cella, poi Δ celle, la temperatura più alta delle sonde della batteria, la potenza in kW e i cicli. Ci sono anche gli allarmi («Nessuno» in verde, «Allarme» in rosso) e lo stato dei MOS di carica (CHG) e di scarica (DCH): ON in verde, OFF in rosso.
+- **Tensione celle**: la griglia con la tensione di ogni cella, con la più alta in azzurro e la più bassa in rosso. Sopra la griglia ci sono la media, il bilanciamento (ON in azzurro, con la corrente) e tutte le temperature: MOS e sonde T1–T4.
+- **In fondo**: il testo degli allarmi del BMS, se ce ne sono.
+
+Toccando l'anello si apre la finestra dei dettagli del SOC. Toccando un valore o una cella si apre la Cronologia con le sue entità. Le voci con entità che non esistono vengono nascoste: per esempio il firmware solar-offgrid-c3 non ha capacità totale, stato dei MOS, bilanciamento e sonde T3–T4.
+
+```yaml
+type: custom:solar-combo-bms-card
+title: JK-BMS               # facoltativo: testo in alto a sinistra ("" per nasconderlo)
+prefix: solar_combo         # facoltativo: prefisso degli entity_id (solar_offgrid per il solar-offgrid-c3)
+cells: 16                   # facoltativo: numero di celle; se manca si legge "BMS Numero Celle", altrimenti 16
+cell_columns: 4             # facoltativo: colonne della griglia delle celle (1-8)
+show_cells: true            # facoltativo: false nasconde la griglia delle celle
+threshold: 0.5              # facoltativo: corrente in A sotto cui la batteria è "a riposo"
+entities:                   # facoltativo: sostituisce le singole entità
+  soc: sensor.solar_combo_bms_state_of_charge
+  cell_1: sensor.solar_combo_bms_cella_1
+```
+
+| Chiave | Entità predefinita (`{p}` = prefisso) |
+|---|---|
+| `soc` | `sensor.{p}_bms_state_of_charge` |
+| `voltage`, `current`, `power` | `sensor.{p}_bms_tensione_totale`, `_bms_corrente`, `_bms_potenza` |
+| `capacity_total`, `capacity_remaining` | `sensor.{p}_bms_capacita_totale`, `_bms_capacita_residua` |
+| `cell_min`, `cell_max`, `cell_avg`, `cell_delta` | `sensor.{p}_bms_cella_minima`, `_cella_massima`, `_media_celle`, `_delta_celle` |
+| `temp_mos`, `temp_1` … `temp_4` | `sensor.{p}_bms_temperatura_mos`, `_temperatura_1` … `_temperatura_4` |
+| `balancing`, `balancing_current` | `binary_sensor.{p}_bms_bilanciamento_attivo`, `sensor.{p}_bms_corrente_bilanciamento` |
+| `charge_mos`, `discharge_mos` | `binary_sensor.{p}_bms_mos_carica_attivo`, `_bms_mos_scarica_attivo` |
+| `cycles` | `sensor.{p}_bms_cicli_di_carica` |
+| `alarms` | `sensor.{p}_bms_allarmi` |
+| `cell_count` | `number.{p}_bms_numero_celle` |
+| `cell_1` … `cell_32` | `sensor.{p}_bms_cella_1` … `_cella_32` (fino al numero di celle) |
+
+Il nome dell'elemento non è `jk-bms-card`: quel nome è già usato da un'altra card di HACS, e le due si potrebbero installare insieme.

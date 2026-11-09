@@ -1,6 +1,15 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.10.0`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.11.0`).
+
+## 0.11.0
+
+**Nuova card del pacco batterie: Solar Combo BMS Card** (`type: custom:solar-combo-bms-card`). È nello stesso file della Solar Combo Card: aggiornando ce l'hai già, basta aggiungerla alla dashboard.
+
+- Perché aggiornare: in una sola card c'è tutto il JK-BMS, con lo stile del display del BMS. Ci sono tensione, corrente e verso (in carica, in scarica, a riposo), l'anello del SOC, la capacità totale e residua, le celle min/max con il loro numero, Δ, le temperature, la potenza, i cicli, gli allarmi e i MOS di carica e scarica. In basso la tensione di ogni cella, con la più alta in azzurro e la più bassa in rosso. Non serve un'altra card da HACS per il BMS.
+- Toccando un valore o una cella si apre la Cronologia; le voci senza entità vengono nascoste.
+- Con `prefix: solar_offgrid` funziona anche con il firmware solar-offgrid-c3.
+- La Solar Combo Card non cambia.
 
 ## 0.10.0
 
