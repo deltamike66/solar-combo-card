@@ -1,0 +1,36 @@
+# Novità della Solar Combo Card
+
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.10.0`).
+
+## 0.10.0
+
+**Temperature dell'aria del R4850G2.** Sotto il caricabatterie compare la corrente d'aria della ventola. Entra a sinistra, fredda (azzurra), ed esce a destra, calda (arancio). Accanto ci sono la temperatura dell'aria in ingresso e quella in uscita.
+
+- Perché aggiornare: dalla dashboard si vede subito se il R4850G2 si scalda troppo, per esempio quando l'uscita dell'aria è ostruita o il locale è caldo. Non serve più aprire le entità diagnostiche.
+- Quando il R4850G2 è acceso l'aria si muove; in standby resta ferma e sbiadita.
+- Toccando una delle due temperature si apre la Cronologia con ingresso e uscita nello stesso grafico.
+- Nuove chiavi `charger_temp_in` e `charger_temp_out`, con predefiniti `sensor.{p}_r4850g2_input_temperature` e `sensor.{p}_r4850g2_output_temperature`. Il firmware solar-combo le fornisce già, quindi non serve configurare niente.
+
+## 0.9.0
+
+**Allarmi dell'inverter.** In fondo alla card, sopra gli allarmi del BMS, c'è la riga «Allarmi inverter» con i guasti (*Fault*) e i warning (*Warning*) dell'SMG II. Chiavi `inverter_fault` e `inverter_warning`.
+
+## 0.8.1
+
+Nel pannello della carica, la riga «Avvio» mostra la conferma in secondi («per N s»), oppure «subito» quando la conferma è 0. Segue il parametro *Carica · Conferma avvio*, che nel firmware ora è in secondi.
+
+## 0.8.0
+
+**Ogni valore apre la Cronologia.** Toccando un valore della card, sia nello schema sia nel pannello della carica, si apre la pagina Cronologia di Home Assistant con il grafico delle sue entità. I valori combinati, come tensione · corrente, mostrano tutte le entità nello stesso grafico. Le illustrazioni aprono ancora la finestra dei dettagli.
+
+## 0.7.0
+
+**Totale FV.** PV1 e PV2 confluiscono in un riquadro con la somma dei watt, collegato all'inverter. Ogni tratto si anima quando la sua potenza supera la soglia.
+
+## 0.6.0
+
+**Temperatura del locale inverter.** Sotto l'inverter c'è la riga «locale xx,x °C», letta dalla sonda DS18B20. Chiave `room_temp`.
+
+## 0.5.0
+
+Prima versione pubblicata. Flusso di energia con 2 stringhe FV, inverter, batteria JK-BMS, R4850G2, casa e rete. Le illustrazioni seguono lo stato e sotto lo schema c'è il pannello della gestione automatica della carica.

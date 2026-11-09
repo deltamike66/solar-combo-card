@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.9.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.9.0";
+/* Solar Combo Card 0.10.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.10.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -31,6 +31,8 @@ const ENTITA = {
   charge_state: "sensor.{p}_stato_gestione_carica",
   grid_power: "sensor.{p}_r4850g2_input_power",
   grid_voltage: "sensor.{p}_r4850g2_input_voltage",
+  charger_temp_in: "sensor.{p}_r4850g2_input_temperature",
+  charger_temp_out: "sensor.{p}_r4850g2_output_temperature",
   charge_start: "number.{p}_carica_avvio_sotto_cella_min",
   charge_stop: "number.{p}_carica_stop_sopra_cella_min",
   charge_confirm: "number.{p}_carica_conferma_avvio",
@@ -150,7 +152,18 @@ const DISEGNI = {
     <circle class="led" cx="37" cy="22" r="3.4" stroke="#37474f" stroke-width="0.8"/>
     <circle cx="45" cy="22" r="2" fill="#90a4ae"/>
     <path d="M33 30h17M33 34h17M33 38h17" stroke="#90a4ae" stroke-width="1.4" stroke-linecap="round"/>
-    <path d="M49 21l-3 5h2.5l-1 4 3.5-5.5h-2.5z" fill="#ffca28"/>`,
+    <path d="M49 21l-3 5h2.5l-1 4 3.5-5.5h-2.5z" fill="#ffca28"/>
+    <!-- corrente d'aria sotto il R4850G2: entra fredda a sinistra, esce calda a destra -->
+    <defs>
+      <linearGradient id="scc-aria" gradientUnits="userSpaceOnUse" x1="2" y1="0" x2="58" y2="0">
+        <stop offset="0" stop-color="#29b6f6"/><stop offset="1" stop-color="#ff7043"/>
+      </linearGradient>
+    </defs>
+    <g class="aria" fill="none" stroke="url(#scc-aria)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path class="soffio" d="M2 51.5q3.5-2.2 7 0t7 0t7 0t7 0t7 0t7 0t6 0"/>
+      <path class="soffio" d="M6 56.5q3.5-2.2 7 0t7 0t7 0t7 0t7 0t6 0"/>
+      <path d="M53.5 48.5l4 3-4 3"/>
+    </g>`,
   traliccio: `
     <g class="scintilla"><path d="M53 3l-4 7h3l-1.5 6 5-8h-3z" fill="#ffc107"/></g>
     <path d="M30 4L17 56M30 4l13 52M10 15h40M14 27h32M23 15l14 12M37 15L23 27M21.5 37h17M20 37l19 12M40 37L19 49M15 56h30"
@@ -175,6 +188,7 @@ const STORICO = {
   celle: ["cell_min", "cell_max", "cell_delta"],
   r48_stato: ["charger_standby", "charge_auto"], r48: ["charger_power"],
   r48_sub: ["charger_voltage", "charger_current"],
+  r48_t_in: ["charger_temp_in", "charger_temp_out"], r48_t_out: ["charger_temp_in", "charger_temp_out"],
   rete: ["grid_power"], rete_sub: ["grid_voltage"],
   allarmi: ["bms_alarms"], allarmi_inv: ["inverter_fault", "inverter_warning"],
   auto: ["charge_auto"], c_stato: ["charge_state"],
@@ -299,6 +313,9 @@ class SolarComboCard extends HTMLElement {
           <text class="stato" x="270" y="279" data-t="r48_stato"></text>
           <text class="val" x="270" y="354" data-t="r48"></text>
           <text class="sub" x="270" y="368" data-t="r48_sub"></text>
+          <!-- temperature dell'aria in ingresso (a sinistra) e in uscita (a destra) -->
+          <text class="sub fine aria-in" x="238" y="339" data-t="r48_t_in"></text>
+          <text class="sub inizio aria-out" x="302" y="339" data-t="r48_t_out"></text>
           <!-- rete del gestore -->
           <text class="tit" x="390" y="266">Rete</text>
           <text class="val" x="390" y="354" data-t="rete"></text>
@@ -437,6 +454,8 @@ class SolarComboCard extends HTMLElement {
     this._testo("r48_sub", `${this._fmt(this._num("charger_voltage"), 1)} V · ${this._fmt(this._num("charger_current"), 1)} A`);
     this._flusso("r4850", pR48);
     this._nodo("r4850", "acceso", !!standby && standby.state === "off");
+    this._testo("r48_t_in", `${this._fmt(this._num("charger_temp_in"), 1)} °C`);
+    this._testo("r48_t_out", `${this._fmt(this._num("charger_temp_out"), 1)} °C`);
     const pRete = this._num("grid_power");
     this._testo("rete", this._potenza(pRete));
     this._testo("rete_sub", `${this._fmt(this._num("grid_voltage"))} V`);
@@ -524,6 +543,13 @@ const STILE = `
   .nodo.acceso .led { fill: #00e676; }
   .nodo.acceso .alone { animation: scc-led 1.6s ease-in-out infinite; }
   @keyframes scc-led { 0%, 100% { opacity: .15; } 50% { opacity: .6; } }
+  .nodo .aria { opacity: .45; transition: opacity .4s; }
+  .nodo .soffio { stroke-dasharray: 5 3; }
+  .nodo.acceso .aria { opacity: 1; }
+  .nodo.acceso .soffio { animation: scc-aria 0.8s linear infinite; }
+  @keyframes scc-aria { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -8; } }
+  .aria-in { fill: #29b6f6; }
+  .aria-out { fill: #ff7043; }
   .nodo .livello { transition: y .6s, height .6s, fill .6s; }
   .fv-totale rect { fill: var(--card-background-color, #fff); stroke: var(--scc-solare);
                     stroke-width: 1.5; stroke-opacity: .4; transition: stroke-opacity .4s; }

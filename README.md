@@ -11,6 +11,8 @@ Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-
 
 ![Anteprima](img/anteprima.png)
 
+Le novità di ogni versione, e perché conviene aggiornare, sono in [CHANGELOG.md](CHANGELOG.md).
+
 Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. Alcuni dettagli seguono lo stato:
 
 - il sole sul pannello quando la stringa produce;
@@ -18,6 +20,7 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 - dietro la casa, un sole quando la casa va a solare (le stringhe producono) e una batteria quando va a batteria (la batteria dà energia all'inverter); compaiono tutti e due quando il fotovoltaico copre solo una parte del consumo. Se la casa va a batteria mentre il R4850G2 carica dalla rete, accanto alla batteria compare anche un traliccio: l'energia arriva dalla rete attraverso il bus della batteria;
 - il riempimento della batteria in base al SOC (rosso sotto il 20%, arancio sotto il 40%), con il fulmine quando è in carica;
 - il LED verde, con un alone che pulsa, quando il R4850G2 è acceso;
+- sotto il R4850G2, la corrente d'aria della ventola: entra a sinistra, fredda (azzurra), ed esce a destra, calda (arancio), con accanto la temperatura dell'aria in ingresso e quella in uscita. Quando il R4850G2 è acceso l'aria si muove, in standby resta ferma e sbiadita;
 - la scintilla sul traliccio quando la rete fornisce energia.
 
 | Flusso | Potenza mostrata |
@@ -45,7 +48,7 @@ La velocità si regola con due opzioni. Un ciclo dell'animazione dura 1,5 s / (1
 
 Sul R4850G2 c'è lo stato: STANDBY o ACCESO, più AUTO o MANUALE a seconda di *Gestione automatica carica*.
 
-Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
+Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature — quelle dell'aria del R4850G2 aprono ingresso e uscita insieme —, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
 
 ## Installazione
 
@@ -75,7 +78,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.9.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.10.0`).
 
 ## Configurazione
 
@@ -118,6 +121,7 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `charge_auto` | `switch.{p}_gestione_automatica_carica` |
 | `charge_state` | `sensor.{p}_stato_gestione_carica` |
 | `grid_power`, `grid_voltage` | `sensor.{p}_r4850g2_input_power`, `_input_voltage` |
+| `charger_temp_in`, `charger_temp_out` | `sensor.{p}_r4850g2_input_temperature`, `_output_temperature` (aria in ingresso e in uscita) |
 | `charge_start`, `charge_stop` | `number.{p}_carica_avvio_sotto_cella_min`, `_carica_stop_sopra_cella_min` |
 | `charge_confirm`, `charge_min_ah` | `number.{p}_carica_conferma_avvio`, `_carica_ah_minimi` |
 | `charge_voltage`, `charge_current`, `charge_margin` | `number.{p}_carica_tensione_r4850g2`, `_carica_corrente_r4850g2`, `_carica_margine_sul_consumo` |
