@@ -1,6 +1,14 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.12.0`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.13.0`).
+
+## 0.13.0
+
+**Estrattore d'aria del locale inverter.** Sotto i testi dell'inverter può comparire un ventilatore con la scritta «estrattore ON/OFF»: quando l'estrattore è acceso le pale girano in azzurro, da spento è grigio e fermo.
+
+- Perché aggiornare: dalla dashboard vedi subito se l'estrattore è in funzione, per esempio mentre il R4850G2 carica o dopo, finché l'aria in uscita non si raffredda.
+- L'estrattore non è un'entità del firmware, quindi va indicato a mano con la nuova chiave `exhaust_fan` sotto `entities` (uno `switch` o un `fan`), per esempio `exhaust_fan: switch.locale_inverter_estrattore_d_aria`. Senza la chiave il ventilatore non compare e la card resta come prima.
+- Toccando il ventilatore si apre la finestra dell'entità, da cui puoi accenderlo o spegnerlo; toccando la scritta si apre la Cronologia.
 
 ## 0.12.0
 

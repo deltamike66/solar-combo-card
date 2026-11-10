@@ -23,7 +23,8 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 - il riempimento della batteria in base al SOC (rosso sotto il 20%, arancio sotto il 40%), con il fulmine quando è in carica;
 - il LED verde, con un alone che pulsa, quando il R4850G2 è acceso;
 - sotto il R4850G2, la corrente d'aria della ventola: entra a sinistra, fredda (azzurra), ed esce a destra, calda (arancio), con accanto la temperatura dell'aria in ingresso e quella in uscita. Quando il R4850G2 è acceso l'aria si muove, in standby resta ferma e sbiadita;
-- la scintilla sul traliccio quando la rete fornisce energia.
+- la scintilla sul traliccio quando la rete fornisce energia;
+- sotto i testi dell'inverter, l'estrattore d'aria del locale con la scritta «estrattore ON/OFF»: le pale girano in azzurro quando è acceso, da spento è grigio e fermo. Compare solo se configuri la chiave `exhaust_fan` (vedi sotto), perché l'estrattore non è un'entità del firmware. Toccando il ventilatore si apre la sua finestra (da lì si accende e si spegne), toccando la scritta la Cronologia.
 
 | Flusso | Potenza mostrata |
 |---|---|
@@ -89,7 +90,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.12.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.13.0`).
 
 ## Configurazione
 
@@ -105,6 +106,7 @@ flow_scale: 500             # facoltativo: fondo scala della velocità dei fluss
 flow_max_speed: 6           # facoltativo: velocità massima dei flussi (multiplo di quella di partenza)
 entities:                   # facoltativo: sostituisce le singole entità
   load_power: sensor.solar_combo_smg_ii_output_active_power
+  exhaust_fan: switch.locale_inverter_estrattore_d_aria   # facoltativo: estrattore d'aria del locale
 ```
 
 Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo ESPHome `solar-combo`.
@@ -144,6 +146,7 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `energy_pv`, `energy_load` | `sensor.{p}_fv_giorno`, `_casa_giorno` (kWh del giorno, dal package `solar_combo_energia.yaml`) |
 | `energy_grid`, `energy_battery_in` | `sensor.{p}_rete_giorno`, `_batteria_carica_giorno` |
 | `inverter_battery_power` | nessuna: se la imposti (positiva verso la batteria) sostituisce il calcolo *BMS Potenza* − *R4850G2 Output Power* |
+| `exhaust_fan` | nessuna: estrattore d'aria del locale inverter, un `switch` o un `fan` di Home Assistant (acceso = stato `on`). Senza questa chiave il ventilatore non compare |
 
 Il SOC mostrato è quello del BMS, poco affidabile d'inverno: la logica di carica della centralina non lo usa.
 

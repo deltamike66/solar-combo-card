@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.12.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.12.0";
+/* Solar Combo Card 0.13.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.13.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -47,6 +47,7 @@ const ENTITA = {
   cell_max_protection: "sensor.{p}_soglia_cella_max_protezione",
   days_since_full: "sensor.{p}_giorni_dall_ultima_carica_completa",
   inverter_battery_power: null,
+  exhaust_fan: null,
   energy_pv: "sensor.{p}_fv_giorno",
   energy_load: "sensor.{p}_casa_giorno",
   energy_grid: "sensor.{p}_rete_giorno",
@@ -76,6 +77,16 @@ const NODI = {
   r4850: { x: 270, y: 310, disegno: "raddrizzatore" },
   rete: { x: 390, y: 310, disegno: "traliccio" },
 };
+
+const ESTRATTORE = { x: 84, y: 258 };
+const DISEGNO_ESTRATTORE = `
+  <rect class="cornice" x="-12" y="-12" width="24" height="24" rx="5"></rect>
+  <g class="pale">
+    <ellipse cx="0" cy="-5.2" rx="2.7" ry="4.8"></ellipse>
+    <ellipse cx="0" cy="-5.2" rx="2.7" ry="4.8" transform="rotate(120)"></ellipse>
+    <ellipse cx="0" cy="-5.2" rx="2.7" ry="4.8" transform="rotate(240)"></ellipse>
+  </g>
+  <circle class="mozzo" r="2"></circle>`;
 
 const FV_BOX = { x: 96, y: 129, w: 68, h: 22 };
 
@@ -209,6 +220,7 @@ const STORICO = {
   c_completa: ["full_charge_days", "days_since_full"],
   energy_pv: ["energy_pv"], energy_load: ["energy_load"], energy_grid: ["energy_grid"],
   energy_battery_in: ["energy_battery_in"],
+  estrattore: ["exhaust_fan"],
 };
 
 function entitaDa(tabella, prefisso, inverter, sostituzioni) {
@@ -334,6 +346,11 @@ class SolarComboCard extends SccBase {
           <text class="sub fine" x="96" y="205" data-t="inv_modo"></text>
           <text class="sub fine" x="96" y="219" data-t="inv_temp"></text>
           <text class="sub fine" x="96" y="233" data-t="locale_temp"></text>
+          <!-- estrattore d'aria del locale (solo con exhaust_fan configurata) -->
+          <g class="estrattore">
+            <g class="ventola" transform="translate(${ESTRATTORE.x} ${ESTRATTORE.y})">${DISEGNO_ESTRATTORE}</g>
+            <text class="sub fine" x="${ESTRATTORE.x - 16}" y="${ESTRATTORE.y + 3.5}" data-t="estrattore"></text>
+          </g>
           <!-- casa -->
           <text class="tit" x="340" y="164">Casa</text>
           <text class="val" x="340" y="244" data-t="casa"></text>
@@ -376,6 +393,7 @@ class SolarComboCard extends SccBase {
     this.shadowRoot.querySelectorAll(".nodo").forEach((g) => {
       g.addEventListener("click", () => this._piuInfo(this._ent[CLIC[g.dataset.nodo]]));
     });
+    this.shadowRoot.querySelector(".ventola").addEventListener("click", () => this._piuInfo(this._ent.exhaust_fan));
     this.shadowRoot.querySelectorAll("[data-t], [data-s]").forEach((el) => {
       const k = el.dataset.s || el.dataset.t;
       if (!STORICO[k]) return;
@@ -459,6 +477,13 @@ class SolarComboCard extends SccBase {
     this._testo("inv_modo", modo ? modo.state : "—");
     this._testo("inv_temp", `${this._fmt(this._num("inverter_temp"))} °C`);
     this._testo("locale_temp", `locale ${this._fmt(this._num("room_temp"), 1)} °C`);
+    const estr = this.shadowRoot.querySelector(".estrattore");
+    estr.classList.toggle("nascosto", !this._ent.exhaust_fan);
+    const fan = this._stato("exhaust_fan");
+    const fanOn = !!fan && fan.state === "on";
+    const fanOff = !!fan && fan.state === "off";
+    estr.classList.toggle("acceso", fanOn);
+    this._testo("estrattore", `estrattore ${fanOn ? "ON" : fanOff ? "OFF" : "—"}`);
     const casa = this._num("load_power");
     this._testo("casa", this._potenza(casa));
     this._testo("casa_sub", `${this._fmt(this._num("load_voltage"))} V`);
@@ -594,6 +619,14 @@ const STILE = `
   .nodo.acceso .aria { opacity: 1; }
   .nodo.acceso .soffio { animation: scc-aria 0.8s linear infinite; }
   @keyframes scc-aria { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -8; } }
+  .estrattore .ventola { cursor: pointer; }
+  .estrattore .cornice { fill: var(--card-background-color, #fff); stroke: #90a4ae; stroke-width: 1.5;
+                         transition: stroke .4s; }
+  .estrattore .pale { fill: #90a4ae; transform-box: view-box; transform-origin: 0 0; transition: fill .4s; }
+  .estrattore .mozzo { fill: #607d8b; }
+  .estrattore.acceso .cornice { stroke: #29b6f6; }
+  .estrattore.acceso .pale { fill: #29b6f6; animation: scc-ventola 0.9s linear infinite; }
+  @keyframes scc-ventola { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .aria-in { fill: #29b6f6; }
   .aria-out { fill: #ff7043; }
   .nodo .livello { transition: y .6s, height .6s, fill .6s; }
