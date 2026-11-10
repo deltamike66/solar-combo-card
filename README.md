@@ -11,7 +11,7 @@ Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-
 
 ![Anteprima](img/anteprima.png)
 
-Nello stesso file c'è anche la **[Solar Combo BMS Card](#solar-combo-bms-card)**, la card del pacco batterie con il JK-BMS.
+Nello stesso file ci sono anche la **[Solar Combo BMS Card](#solar-combo-bms-card)**, la card del pacco batterie con il JK-BMS, e la **[Solar Combo Generic Card](#solar-combo-generic-card)**, lo stesso schema con un caricabatterie generico acceso da un relè al posto del R4850G2.
 
 Le novità di ogni versione, e perché conviene aggiornare, sono in [CHANGELOG.md](CHANGELOG.md).
 
@@ -90,7 +90,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.13.0`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.14.0`).
 
 ## Configurazione
 
@@ -192,3 +192,38 @@ entities:                   # facoltativo: sostituisce le singole entità
 | `cell_1` … `cell_32` | `sensor.{p}_bms_cella_1` … `_cella_32` (fino al numero di celle) |
 
 Il nome dell'elemento non è `jk-bms-card`: quel nome è già usato da un'altra card di HACS, e le due si potrebbero installare insieme.
+
+## Solar Combo Generic Card
+
+Lo schema della Solar Combo Card senza il R4850G2 (`type: custom:solar-combo-generic-card`). Al suo posto c'è un **caricabatterie generico**, acceso e spento da un **relè**. Serve quando la batteria si carica dalla rete con un caricabatterie qualsiasi, comandato da un relè o da una presa smart.
+
+![Anteprima della Solar Combo Generic Card](img/anteprima-generic.png)
+
+- **Relè**: è disegnato come un contatto sulla linea tra la rete e il caricabatterie. Quando il relè è acceso il contatto è chiuso (azzurro, ON) e i flussi rete → caricabatterie → batteria si muovono. Quando è spento il contatto è aperto (grigio, OFF). Toccando il relè o il caricabatterie si apre la finestra del relè, da cui lo puoi accendere e spegnere.
+- **Caricabatterie**: la scritta ACCESO/SPENTO segue il relè e il LED si accende con il relè. Potenza, tensione e corrente compaiono solo se configuri le loro entità.
+- **Senza misure**: con il solo relè, quando è acceso i flussi si muovono alla velocità minima e la potenza non si scrive. La potenza tra inverter e batteria si stima come FV − casa.
+- Tutto il resto è come nella Solar Combo Card: stringhe FV, inverter, batteria, casa, estrattore d'aria (`exhaust_fan`), fascia «Oggi» e allarmi. Non c'è il pannello della gestione carica e non ci sono le temperature dell'aria, che sono del R4850G2.
+
+Le entità del caricabatterie non sono del firmware, quindi vanno indicate sotto `entities`: `charger_relay` serve sempre, le altre sono facoltative.
+
+```yaml
+type: custom:solar-combo-generic-card
+title: Solar Combo          # facoltativo
+prefix: solar_combo         # facoltativo: prefisso degli entity_id (solar_offgrid per il solar-offgrid-c3)
+entities:
+  charger_relay: switch.rele_caricabatterie           # relè del caricabatterie (switch, o light/fan/input_boolean)
+  grid_power: sensor.presa_caricabatterie_potenza     # facoltativo: potenza presa dalla rete (W)
+  grid_voltage: sensor.presa_caricabatterie_tensione  # facoltativo: tensione di rete (V)
+  charger_power: sensor.caricabatterie_potenza        # facoltativo: potenza data alla batteria (W)
+  charger_voltage: sensor.caricabatterie_tensione     # facoltativo
+  charger_current: sensor.caricabatterie_corrente     # facoltativo
+  exhaust_fan: switch.locale_inverter_estrattore_d_aria  # facoltativo
+```
+
+| Chiave | Uso |
+|---|---|
+| `charger_relay` | relè del caricabatterie: acceso = stato `on`. Nessuna entità predefinita |
+| `charger_power` | potenza che il caricabatterie dà alla batteria. Se manca ma ci sono `charger_voltage` e `charger_current`, si calcola tensione × corrente; si toglie da *BMS Potenza* per avere il flusso inverter ↔ batteria |
+| `charger_voltage`, `charger_current` | tensione e corrente d'uscita del caricabatterie, scritte sotto la potenza |
+| `grid_power`, `grid_voltage` | potenza e tensione della rete, sotto il traliccio (per esempio da una presa smart con misura) |
+| le altre | come nella Solar Combo Card (`prefix`, `inverter`, `threshold`, `flow_scale`, `flow_max_speed`, `show_daily` e le entità di FV, inverter, batteria, casa ed energia del giorno) |

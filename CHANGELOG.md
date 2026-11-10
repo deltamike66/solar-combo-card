@@ -1,6 +1,15 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.13.0`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.14.0`).
+
+## 0.14.0
+
+**Nuova card: Solar Combo Generic Card** (`type: custom:solar-combo-generic-card`). È lo schema della Solar Combo Card con un caricabatterie generico acceso da un relè al posto del R4850G2. Sta nello stesso file: aggiornando ce l'hai già, basta aggiungerla alla dashboard.
+
+- Perché aggiornare: se carichi la batteria dalla rete con un caricabatterie qualsiasi comandato da un relè o da una presa smart, ora hai lo stesso schema del flusso di energia. Il relè è disegnato come un contatto sulla linea della rete: chiuso e azzurro quando è acceso, aperto e grigio quando è spento.
+- Il relè va indicato con `charger_relay` sotto `entities`. Potenza, tensione e corrente del caricabatterie e della rete sono facoltative: senza misure i flussi si muovono alla velocità minima mentre il relè è acceso.
+- Toccando il relè si apre la sua finestra, da cui lo accendi e lo spegni.
+- La Solar Combo Card e la Solar Combo BMS Card non cambiano.
 
 ## 0.13.0
 

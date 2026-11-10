@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.13.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.13.0";
+/* Solar Combo Card 0.14.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.14.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -186,6 +186,16 @@ const DISEGNI = {
       <path class="soffio" d="M6 56.5q3.5-2.2 7 0t7 0t7 0t7 0t7 0t6 0"/>
       <path d="M53.5 48.5l4 3-4 3"/>
     </g>`,
+  caricatore: `
+    <rect x="5" y="12" width="50" height="38" rx="4" fill="#cfd8dc" stroke="#546e7a" stroke-width="1.8"/>
+    <rect x="10" y="17" width="28" height="28" rx="2" fill="#eceff1" stroke="#78909c" stroke-width="1"/>
+    <path d="M10 45L38 17" stroke="#78909c" stroke-width="1"/>
+    <path d="M13 27c1.5-4 3-4 4.5 0s3 4 4.5 0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M25 37h10" stroke="#546e7a" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M25 41h2.5M29 41h2.5M33 41h2" stroke="#546e7a" stroke-width="1.5" stroke-linecap="round"/>
+    <circle class="alone" cx="47" cy="21" r="6.5"/>
+    <circle class="led" cx="47" cy="21" r="3.4" stroke="#37474f" stroke-width="0.8"/>
+    <path d="M43 31h8M43 35h8M43 39h8M43 43h8" stroke="#90a4ae" stroke-width="1.4" stroke-linecap="round"/>`,
   traliccio: `
     <g class="scintilla"><path d="M53 3l-4 7h3l-1.5 6 5-8h-3z" fill="#ffc107"/></g>
     <path d="M30 4L17 56M30 4l13 52M10 15h40M14 27h32M23 15l14 12M37 15L23 27M21.5 37h17M20 37l19 12M40 37L19 49M15 56h30"
@@ -221,6 +231,8 @@ const STORICO = {
   energy_pv: ["energy_pv"], energy_load: ["energy_load"], energy_grid: ["energy_grid"],
   energy_battery_in: ["energy_battery_in"],
   estrattore: ["exhaust_fan"],
+  rele: ["charger_relay"], car_stato: ["charger_relay"], car: ["charger_power", "grid_power"],
+  car_sub: ["charger_voltage", "charger_current"],
 };
 
 function entitaDa(tabella, prefisso, inverter, sostituzioni) {
@@ -289,7 +301,7 @@ class SolarComboCard extends SccBase {
     if (!config) throw new Error("Configurazione mancante");
     const prefisso = config.prefix || "solar_combo";
     const inverter = config.inverter || "smg_ii";
-    const ent = entitaDa(ENTITA, prefisso, inverter, config.entities);
+    const ent = entitaDa(this._entitaTab(), prefisso, inverter, config.entities);
     const soglia = Number(config.threshold);
     this._soglia = config.threshold !== undefined && Number.isFinite(soglia) && soglia >= 0 ? soglia : SOGLIA_W;
     const positivo = (v, def, min) => {
@@ -310,7 +322,7 @@ class SolarComboCard extends SccBase {
 
   _costruisci() {
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
-    const nodi = Object.entries(NODI).map(([k, n]) => `
+    const nodi = Object.entries(this._nodiTab()).map(([k, n]) => `
       <g class="nodo" data-nodo="${k}" transform="translate(${n.x - L / 2} ${n.y - L / 2})">
         <rect class="area" width="${L}" height="${L}"></rect>
         ${DISEGNI[n.disegno]}
@@ -363,14 +375,7 @@ class SolarComboCard extends SccBase {
           <text class="sub fine" x="96" y="324" data-t="batt_p"></text>
           <text class="sub fine" x="96" y="338" data-t="batt_v"></text>
           <text class="sub" x="130" y="356" data-t="celle"></text>
-          <!-- R4850G2 -->
-          <text class="tit" x="270" y="266">R4850G2</text>
-          <text class="stato" x="270" y="279" data-t="r48_stato"></text>
-          <text class="val" x="270" y="354" data-t="r48"></text>
-          <text class="sub" x="270" y="368" data-t="r48_sub"></text>
-          <!-- temperature dell'aria in ingresso (a sinistra) e in uscita (a destra) -->
-          <text class="sub fine aria-in" x="238" y="339" data-t="r48_t_in"></text>
-          <text class="sub inizio aria-out" x="302" y="339" data-t="r48_t_out"></text>
+          ${this._svgCaricatore()}
           <!-- rete del gestore -->
           <text class="tit" x="390" y="266">Rete</text>
           <text class="val" x="390" y="354" data-t="rete"></text>
@@ -384,16 +389,17 @@ class SolarComboCard extends SccBase {
             <div class="et">${et}</div><div class="kwh" data-t="${k}"></div>
           </div>`).join("")}
         </div>`}
-        ${this._config.show_charge === false ? "" : PANNELLO_CARICA}
+        ${this._conPannello() ? PANNELLO_CARICA : ""}
         <div class="piede">
           <div class="allarme" data-t="allarmi_inv"></div>
           <div class="allarme" data-t="allarmi"></div>
         </div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll(".nodo").forEach((g) => {
-      g.addEventListener("click", () => this._piuInfo(this._ent[CLIC[g.dataset.nodo]]));
+      g.addEventListener("click", () => this._piuInfo(this._ent[this._clicTab()[g.dataset.nodo]]));
     });
     this.shadowRoot.querySelector(".ventola").addEventListener("click", () => this._piuInfo(this._ent.exhaust_fan));
+    this._dopoCostruzione();
     this.shadowRoot.querySelectorAll("[data-t], [data-s]").forEach((el) => {
       const k = el.dataset.s || el.dataset.t;
       if (!STORICO[k]) return;
@@ -401,6 +407,67 @@ class SolarComboCard extends SccBase {
       el.addEventListener("click", (e) => { e.stopPropagation(); this._storico(STORICO[k]); });
     });
     this._costruita = true;
+  }
+
+  _entitaTab() {
+    return ENTITA;
+  }
+
+  _nodiTab() {
+    return NODI;
+  }
+
+  _clicTab() {
+    return CLIC;
+  }
+
+  _conPannello() {
+    return this._config.show_charge !== false;
+  }
+
+  _dopoCostruzione() {}
+
+  _svgCaricatore() {
+    return `
+          <!-- R4850G2 -->
+          <text class="tit" x="270" y="266">R4850G2</text>
+          <text class="stato" x="270" y="279" data-t="r48_stato"></text>
+          <text class="val" x="270" y="354" data-t="r48"></text>
+          <text class="sub" x="270" y="368" data-t="r48_sub"></text>
+          <!-- temperature dell'aria in ingresso (a sinistra) e in uscita (a destra) -->
+          <text class="sub fine aria-in" x="238" y="339" data-t="r48_t_in"></text>
+          <text class="sub inizio aria-out" x="302" y="339" data-t="r48_t_out"></text>`;
+  }
+
+  _aggiornaCaricatore() {
+    let pR48 = this._num("charger_power");
+    const vR48 = this._num("charger_voltage"), iR48 = this._num("charger_current");
+    if (!(pR48 > 0) && Number.isFinite(vR48) && Number.isFinite(iR48) && vR48 * iR48 > 0) pR48 = vR48 * iR48;
+    const standby = this._stato("charger_standby");
+    const auto = this._stato("charge_auto");
+    const statoR48 = standby ? (standby.state === "on" ? "STANDBY" : "ACCESO") : "—";
+    const modoR48 = auto ? (auto.state === "on" ? "AUTO" : "MANUALE") : "";
+    this._testo("r48_stato", modoR48 ? `${statoR48} · ${modoR48}` : statoR48);
+    this._testo("r48", this._potenza(pR48));
+    this._testo("r48_sub", `${this._fmt(this._num("charger_voltage"), 1)} V · ${this._fmt(this._num("charger_current"), 1)} A`);
+    this._flusso("r4850", pR48);
+    this._nodo("r4850", "acceso", !!standby && standby.state === "off");
+    this._testo("r48_t_in", `${this._fmt(this._num("charger_temp_in"), 1)} °C`);
+    this._testo("r48_t_out", `${this._fmt(this._num("charger_temp_out"), 1)} °C`);
+    const pRete = this._num("grid_power");
+    this._testo("rete", this._potenza(pRete));
+    this._testo("rete_sub", `${this._fmt(this._num("grid_voltage"))} V`);
+    this._flusso("rete", pRete);
+    this._nodo("rete", "attivo", pRete >= this._soglia);
+    return pR48;
+  }
+
+  _caricaDaRete(pCar) {
+    return pCar >= this._soglia;
+  }
+
+  _invBatteria(pBatt, pCar) {
+    return pBatt - (Number.isFinite(pCar) ? pCar : 0);
   }
 
   _storico(chiavi) {
@@ -500,28 +567,10 @@ class SolarComboCard extends SccBase {
     this._livelloBatteria(soc);
     this._nodo("batteria", "in-carica", pBatt >= this._soglia);
 
-    let pR48 = this._num("charger_power");
-    const vR48 = this._num("charger_voltage"), iR48 = this._num("charger_current");
-    if (!(pR48 > 0) && Number.isFinite(vR48) && Number.isFinite(iR48) && vR48 * iR48 > 0) pR48 = vR48 * iR48;
-    const standby = this._stato("charger_standby");
-    const auto = this._stato("charge_auto");
-    const statoR48 = standby ? (standby.state === "on" ? "STANDBY" : "ACCESO") : "—";
-    const modoR48 = auto ? (auto.state === "on" ? "AUTO" : "MANUALE") : "";
-    this._testo("r48_stato", modoR48 ? `${statoR48} · ${modoR48}` : statoR48);
-    this._testo("r48", this._potenza(pR48));
-    this._testo("r48_sub", `${this._fmt(this._num("charger_voltage"), 1)} V · ${this._fmt(this._num("charger_current"), 1)} A`);
-    this._flusso("r4850", pR48);
-    this._nodo("r4850", "acceso", !!standby && standby.state === "off");
-    this._testo("r48_t_in", `${this._fmt(this._num("charger_temp_in"), 1)} °C`);
-    this._testo("r48_t_out", `${this._fmt(this._num("charger_temp_out"), 1)} °C`);
-    const pRete = this._num("grid_power");
-    this._testo("rete", this._potenza(pRete));
-    this._testo("rete_sub", `${this._fmt(this._num("grid_voltage"))} V`);
-    this._flusso("rete", pRete);
-    this._nodo("rete", "attivo", pRete >= this._soglia);
+    const pR48 = this._aggiornaCaricatore();
 
     let pInvBatt = this._num("inverter_battery_power");
-    if (!Number.isFinite(pInvBatt)) pInvBatt = pBatt - (Number.isFinite(pR48) ? pR48 : 0);
+    if (!Number.isFinite(pInvBatt)) pInvBatt = this._invBatteria(pBatt, pR48);
     this._testo("inv_batt", Number.isFinite(pInvBatt) && Math.abs(pInvBatt) >= this._soglia
       ? `${pInvBatt > 0 ? "↓" : "↑"} ${this._potenza(Math.abs(pInvBatt))}` : "");
     this._flusso("batteria", pInvBatt);
@@ -530,7 +579,7 @@ class SolarComboCard extends SccBase {
     this._nodo("casa", "da-solare", consuma && pvTot >= this._soglia);
     const daBatteria = consuma && pInvBatt <= -this._soglia;
     this._nodo("casa", "da-batteria", daBatteria);
-    this._nodo("casa", "da-rete", daBatteria && pR48 >= this._soglia);
+    this._nodo("casa", "da-rete", daBatteria && this._caricaDaRete(pR48));
 
     if (this._config.show_daily !== false) {
       let presenti = 0;
@@ -545,7 +594,7 @@ class SolarComboCard extends SccBase {
       this.shadowRoot.querySelector(".oggi").classList.toggle("nascosto", !presenti);
     }
 
-    if (this._config.show_charge !== false) this._aggiornaCarica(cmin);
+    if (this._conPannello()) this._aggiornaCarica(cmin);
 
     const txt = (k) => {
       const e = this._stato(k);
@@ -555,6 +604,125 @@ class SolarComboCard extends SccBase {
     this._testo("allarmi_inv", inv ? `Allarmi inverter: ${inv}` : "");
     const a = txt("bms_alarms");
     this._testo("allarmi", a ? `Allarmi BMS: ${a}` : "");
+  }
+}
+
+const SOLO_R4850 = [
+  "charger_standby", "charge_auto", "charge_state", "charger_temp_in", "charger_temp_out",
+  "charge_start", "charge_stop", "charge_confirm", "charge_min_ah", "charge_voltage",
+  "charge_current", "charge_margin", "full_charge_days", "charged_ah", "charge_current_req",
+  "cell_max_charge", "cell_max_protection", "days_since_full",
+];
+const GEN_ENTITA = Object.assign(
+  Object.fromEntries(Object.entries(ENTITA).filter(([k]) => !SOLO_R4850.includes(k))),
+  {
+    charger_relay: null,
+    charger_power: null,
+    charger_voltage: null,
+    charger_current: null,
+    grid_power: null,
+    grid_voltage: null,
+  });
+
+const GEN_NODI = Object.assign({}, NODI, { r4850: { x: 270, y: 310, disegno: "caricatore" } });
+const GEN_CLIC = Object.assign({}, CLIC, { r4850: "charger_relay" });
+
+const RELE = { x1: 329, x2: 347, y: 310 };
+
+class SolarComboGenericCard extends SolarComboCard {
+  static getStubConfig() {
+    return { prefix: "solar_combo", entities: { charger_relay: "switch.caricabatterie" } };
+  }
+
+  getCardSize() {
+    return 6;
+  }
+
+  _entitaTab() {
+    return GEN_ENTITA;
+  }
+
+  _nodiTab() {
+    return GEN_NODI;
+  }
+
+  _clicTab() {
+    return GEN_CLIC;
+  }
+
+  _conPannello() {
+    return false;
+  }
+
+  _svgCaricatore() {
+    const { x1, x2, y } = RELE;
+    const xm = (x1 + x2) / 2;
+    return `
+          <!-- relè sulla linea della rete: interrompe la linea, leva sul perno -->
+          <g class="rele">
+            <rect class="taglio" x="${x1 + 2}" y="${y - 4}" width="${x2 - x1 - 4}" height="8"></rect>
+            <line class="leva" x1="${x1}" y1="${y}" x2="${x2 + 1}" y2="${y}"></line>
+            <circle class="morsetto" cx="${x1}" cy="${y}" r="2.6"></circle>
+            <circle class="morsetto" cx="${x2}" cy="${y}" r="2.6"></circle>
+            <rect class="area" x="${x1 - 8}" y="${y - 24}" width="${x2 - x1 + 16}" height="36"></rect>
+          </g>
+          <text class="sub" x="${xm}" y="${y - 21}">Relè</text>
+          <text class="stato" x="${xm}" y="${y + 18}" data-t="rele"></text>
+          <!-- caricabatterie generico -->
+          <text class="tit" x="270" y="266">Caricabatterie</text>
+          <text class="stato" x="270" y="279" data-t="car_stato"></text>
+          <text class="val" x="270" y="354" data-t="car"></text>
+          <text class="sub" x="270" y="368" data-t="car_sub"></text>`;
+  }
+
+  _dopoCostruzione() {
+    this.shadowRoot.querySelector(".rele").addEventListener("click", () => this._piuInfo(this._ent.charger_relay));
+  }
+
+  _aggiornaCaricatore() {
+    const rele = this._stato("charger_relay");
+    const acceso = !!rele && rele.state === "on";
+    const spento = !!rele && rele.state === "off";
+    const stato = acceso ? "ON" : spento ? "OFF" : "—";
+    this._testo("rele", stato);
+    this._testo("car_stato", acceso ? "ACCESO" : spento ? "SPENTO" : "—");
+    this.shadowRoot.querySelector(".rele").classList.toggle("chiuso", acceso);
+
+    let pCar = this._num("charger_power");
+    const vCar = this._num("charger_voltage"), iCar = this._num("charger_current");
+    if (!Number.isFinite(pCar) && Number.isFinite(vCar) && Number.isFinite(iCar)) pCar = vCar * iCar;
+    const pRete = this._num("grid_power");
+    const testoP = (w, conf) => (conf ? this._potenza(w) : "");
+    this._testo("car", testoP(pCar, this._ent.charger_power || (this._ent.charger_voltage && this._ent.charger_current)));
+    const vA = [];
+    if (this._ent.charger_voltage) vA.push(`${this._fmt(vCar, 1)} V`);
+    if (this._ent.charger_current) vA.push(`${this._fmt(iCar, 1)} A`);
+    this._testo("car_sub", vA.join(" · "));
+    this._testo("rete", testoP(pRete, this._ent.grid_power));
+    this._testo("rete_sub", this._ent.grid_voltage ? `${this._fmt(this._num("grid_voltage"))} V` : "");
+
+    const minimo = this._soglia || 1;
+    const pFlussoCar = acceso ? (Number.isFinite(pCar) ? pCar : Number.isFinite(pRete) ? pRete : minimo) : NaN;
+    const pFlussoRete = acceso ? (Number.isFinite(pRete) ? pRete : Number.isFinite(pCar) ? pCar : minimo) : NaN;
+    this._flusso("r4850", pFlussoCar);
+    this._flusso("rete", pFlussoRete);
+    this._nodo("r4850", "acceso", acceso);
+    this._nodo("rete", "attivo", acceso && pFlussoRete >= this._soglia);
+    this._caricaAttiva = acceso;
+    return acceso ? pCar : 0;
+  }
+
+  _caricaDaRete() {
+    return !!this._caricaAttiva;
+  }
+
+  _invBatteria(pBatt, pCar) {
+    if (this._caricaAttiva && !Number.isFinite(pCar)) {
+      const fv = this._num("pv1_power") + this._num("pv2_power");
+      const casa = this._num("load_power");
+      return Number.isFinite(fv) && Number.isFinite(casa) ? fv - casa : NaN;
+    }
+    return pBatt - (Number.isFinite(pCar) ? pCar : 0);
   }
 }
 
@@ -627,6 +795,14 @@ const STILE = `
   .estrattore.acceso .cornice { stroke: #29b6f6; }
   .estrattore.acceso .pale { fill: #29b6f6; animation: scc-ventola 0.9s linear infinite; }
   @keyframes scc-ventola { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .rele { cursor: pointer; }
+  .rele .area { fill: transparent; }
+  .rele .taglio { fill: var(--card-background-color, #fff); }
+  .rele .morsetto { fill: var(--card-background-color, #fff); stroke: #607d8b; stroke-width: 1.5; }
+  .rele .leva { stroke: #90a4ae; stroke-width: 2.4; stroke-linecap: round;
+                transform-box: view-box; transform-origin: ${RELE.x1}px ${RELE.y}px;
+                transform: rotate(-32deg); transition: transform .4s, stroke .4s; }
+  .rele.chiuso .leva { stroke: var(--scc-rete); transform: rotate(0deg); }
   .aria-in { fill: #29b6f6; }
   .aria-out { fill: #ff7043; }
   .nodo .livello { transition: y .6s, height .6s, fill .6s; }
@@ -996,6 +1172,7 @@ const BMS_STILE = `
 
 customElements.define("solar-combo-card", SolarComboCard);
 customElements.define("solar-combo-bms-card", SolarComboBmsCard);
+customElements.define("solar-combo-generic-card", SolarComboGenericCard);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
@@ -1007,6 +1184,11 @@ window.customCards.push({
   type: "solar-combo-bms-card",
   name: "Solar Combo BMS Card",
   description: "Pacco batterie con JK-BMS: tensione, corrente, SOC, capacità, temperature e tensione di ogni cella",
+  preview: true,
+}, {
+  type: "solar-combo-generic-card",
+  name: "Solar Combo Generic Card",
+  description: "Flusso di energia come la Solar Combo Card, con un caricabatterie generico acceso da un relè al posto del R4850G2",
   preview: true,
 });
 
