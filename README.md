@@ -50,7 +50,16 @@ La velocità si regola con due opzioni. Un ciclo dell'animazione dura 1,5 s / (1
 
 Sul R4850G2 c'è lo stato: STANDBY o ACCESO, più AUTO o MANUALE a seconda di *Gestione automatica carica*.
 
-Sotto lo schema c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature — quelle dell'aria del R4850G2 aprono ingresso e uscita insieme —, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
+Sotto lo schema c'è la fascia **Oggi** con l'energia del giorno, in kWh, azzerata a mezzanotte:
+
+- **Prodotta FV**: energia prodotta dalle due stringhe;
+- **In casa**: energia erogata in casa dall'uscita AC dell'inverter;
+- **Dalla rete**: energia prelevata dalla rete dal R4850G2;
+- **In batteria**: energia immessa in batteria, dal FV e dal R4850G2 insieme.
+
+I totali li calcola Home Assistant con il package [`homeassistant/packages/solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo/blob/main/homeassistant/packages/solar_combo_energia.yaml) del progetto solar-combo. Integra le potenze in kWh e ha gli `utility_meter` con ciclo giornaliero, che si azzerano a mezzanotte. Senza il package i riquadri non compaiono; `show_daily: false` nasconde la fascia.
+
+Più in basso c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature — quelle dell'aria del R4850G2 aprono ingresso e uscita insieme —, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
 
 ## Installazione
 
@@ -80,7 +89,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
 
    Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
-3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.11.1`).
+3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.12.0`).
 
 ## Configurazione
 
@@ -89,6 +98,7 @@ type: custom:solar-combo-card
 title: Solar Combo          # facoltativo
 prefix: solar_combo         # facoltativo: prefisso degli entity_id
 inverter: smg_ii            # facoltativo: nome dell'inverter nelle sue entità
+show_daily: true            # facoltativo: false nasconde la fascia dell'energia del giorno
 show_charge: true           # facoltativo: false nasconde il pannello della gestione carica
 threshold: 10               # facoltativo: soglia in W sotto cui flussi e indicatori sono spenti
 flow_scale: 500             # facoltativo: fondo scala della velocità dei flussi, in W
@@ -131,6 +141,8 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `charged_ah`, `charge_current_req` | `sensor.{p}_carica_ah_caricati`, `_carica_corrente_richiesta` |
 | `cell_max_charge`, `cell_max_protection` | `sensor.{p}_soglia_cella_max_carica`, `_soglia_cella_max_protezione` |
 | `days_since_full` | `sensor.{p}_giorni_dall_ultima_carica_completa` |
+| `energy_pv`, `energy_load` | `sensor.{p}_fv_giorno`, `_casa_giorno` (kWh del giorno, dal package `solar_combo_energia.yaml`) |
+| `energy_grid`, `energy_battery_in` | `sensor.{p}_rete_giorno`, `_batteria_carica_giorno` |
 | `inverter_battery_power` | nessuna: se la imposti (positiva verso la batteria) sostituisce il calcolo *BMS Potenza* − *R4850G2 Output Power* |
 
 Il SOC mostrato è quello del BMS, poco affidabile d'inverno: la logica di carica della centralina non lo usa.

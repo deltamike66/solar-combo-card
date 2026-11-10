@@ -1,6 +1,15 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.11.1`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.12.0`).
+
+## 0.12.0
+
+**Energia del giorno nella Solar Combo Card.** Sotto lo schema c'è la fascia «Oggi» con quattro riquadri in kWh, azzerati ogni mezzanotte: energia prodotta dal FV, erogata in casa, prelevata dalla rete e immessa in batteria.
+
+- Perché aggiornare: in un colpo d'occhio vedi quanto ha reso il fotovoltaico oggi, quanto ha consumato la casa e quanta energia hai dovuto prendere dalla rete per caricare la batteria.
+- I totali vengono dal package `homeassistant/packages/solar_combo_energia.yaml` del progetto solar-combo (`utility_meter` giornalieri, entità `sensor.solar_combo_fv_giorno`, `_casa_giorno`, `_rete_giorno`, `_batteria_carica_giorno`). Se il package non c'è, la fascia non compare.
+- Toccando un riquadro si apre la Cronologia della sua energia.
+- Nuova opzione `show_daily: false` per nascondere la fascia; nuove chiavi `energy_pv`, `energy_load`, `energy_grid`, `energy_battery_in`.
 
 ## 0.11.1
 

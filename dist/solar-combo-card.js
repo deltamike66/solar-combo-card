@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.11.1 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.11.1";
+/* Solar Combo Card 0.12.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.12.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -47,7 +47,18 @@ const ENTITA = {
   cell_max_protection: "sensor.{p}_soglia_cella_max_protezione",
   days_since_full: "sensor.{p}_giorni_dall_ultima_carica_completa",
   inverter_battery_power: null,
+  energy_pv: "sensor.{p}_fv_giorno",
+  energy_load: "sensor.{p}_casa_giorno",
+  energy_grid: "sensor.{p}_rete_giorno",
+  energy_battery_in: "sensor.{p}_batteria_carica_giorno",
 };
+
+const OGGI = [
+  ["Prodotta FV", "energy_pv", "var(--scc-solare)"],
+  ["In casa", "energy_load", "var(--scc-casa)"],
+  ["Dalla rete", "energy_grid", "var(--scc-rete)"],
+  ["In batteria", "energy_battery_in", "var(--scc-batteria)"],
+];
 
 const SOGLIA_W = 10;
 
@@ -196,6 +207,8 @@ const STORICO = {
   c_ah: ["charged_ah", "cell_min"], c_r48: ["charge_voltage", "charge_current", "charge_margin"],
   c_rich: ["charge_current_req"], c_cmax: ["cell_max_charge", "cell_max_protection"],
   c_completa: ["full_charge_days", "days_since_full"],
+  energy_pv: ["energy_pv"], energy_load: ["energy_load"], energy_grid: ["energy_grid"],
+  energy_battery_in: ["energy_battery_in"],
 };
 
 function entitaDa(tabella, prefisso, inverter, sostituzioni) {
@@ -280,7 +293,7 @@ class SolarComboCard extends SccBase {
   }
 
   getCardSize() {
-    return 7;
+    return 8;
   }
 
   _costruisci() {
@@ -346,6 +359,14 @@ class SolarComboCard extends SccBase {
           <text class="val" x="390" y="354" data-t="rete"></text>
           <text class="sub" x="390" y="368" data-t="rete_sub"></text>
         </svg>
+        ${this._config.show_daily === false ? "" : `
+        <div class="oggi">
+          <div class="oggi-tit">Oggi</div>
+          ${OGGI.map(([et, k, c]) => `
+          <div class="riquadro" data-req="${k}" style="--c:${c}">
+            <div class="et">${et}</div><div class="kwh" data-t="${k}"></div>
+          </div>`).join("")}
+        </div>`}
         ${this._config.show_charge === false ? "" : PANNELLO_CARICA}
         <div class="piede">
           <div class="allarme" data-t="allarmi_inv"></div>
@@ -486,6 +507,19 @@ class SolarComboCard extends SccBase {
     this._nodo("casa", "da-batteria", daBatteria);
     this._nodo("casa", "da-rete", daBatteria && pR48 >= this._soglia);
 
+    if (this._config.show_daily !== false) {
+      let presenti = 0;
+      for (const [, k] of OGGI) {
+        const c = this.shadowRoot.querySelector(`.riquadro[data-req="${k}"]`);
+        const esiste = !!this._stato(k);
+        c.classList.toggle("nascosto", !esiste);
+        if (esiste) presenti++;
+        const kwh = this._num(k);
+        this._testo(k, `${this._fmt(kwh, Math.abs(kwh) < 10 ? 2 : 1)} kWh`);
+      }
+      this.shadowRoot.querySelector(".oggi").classList.toggle("nascosto", !presenti);
+    }
+
     if (this._config.show_charge !== false) this._aggiornaCarica(cmin);
 
     const txt = (k) => {
@@ -573,6 +607,18 @@ const STILE = `
   .attivo .linea { opacity: .55; }
   .attivo .punti { opacity: 1; animation: scc-flusso 1s linear infinite; }
   @keyframes scc-flusso { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -28.2; } }
+  .oggi { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 6px; align-items: stretch;
+          margin: 2px 4px 6px; }
+  .oggi-tit { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center;
+              font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+              color: var(--secondary-text-color); }
+  .riquadro { border-radius: 8px; padding: 5px 6px 6px; text-align: center;
+              display: flex; flex-direction: column; justify-content: space-between;
+              background: var(--secondary-background-color, #f3f3f3); border-top: 3px solid var(--c); }
+  .riquadro .et { font-size: 10px; line-height: 1.2; color: var(--secondary-text-color); }
+  .riquadro .kwh { font-size: 13px; font-weight: 700; color: var(--primary-text-color); margin-top: 2px;
+                   white-space: nowrap; }
+  .nascosto { display: none !important; }
   .carica { margin: 4px 4px 0; padding: 8px 10px; border-radius: 10px;
             background: var(--secondary-background-color, #f3f3f3); font-size: 12px; }
   .testata { display: flex; justify-content: space-between; align-items: center;
