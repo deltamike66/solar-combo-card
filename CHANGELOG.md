@@ -1,6 +1,16 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.14.0`).
+Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
+
+## 0.15.0
+
+**Rete sull'ingresso AC dell'inverter.** Se la rete del gestore è collegata anche all'inverter, per esempio con il R4850G2 fuori uso, compare una linea dal traliccio all'inverter con la scritta «dalla rete …».
+
+- Perché aggiornare: con la rete sull'inverter la card mostrava la casa e la carica della batteria senza nessuna sorgente che le giustificasse. Ora vedi quanta potenza arriva dalla rete all'inverter, e sotto il traliccio c'è il totale preso dalla rete (R4850G2 + inverter).
+- La linea compare da sola quando all'ingresso AC dell'inverter ci sono almeno 100 V o arriva potenza, e sparisce quando lo scolleghi. Usa le entità del firmware *SMG-II Mains Power* e *AC Mains Voltage* (chiavi nuove `inverter_grid_power`, `inverter_grid_voltage`); con `inverter_grid_power: null` sotto `entities` la linea non compare mai.
+- Se la casa prende energia dalla rete attraverso l'inverter, dietro la casa compare il traliccio.
+- Con lo standby del R4850G2 non disponibile la card scrive «—» invece di «ACCESO».
+- Per il riquadro «Dalla rete» della fascia «Oggi» aggiorna anche il package `solar_combo_energia.yaml`: ora somma la rete del R4850G2 e quella dell'inverter.
 
 ## 0.14.0
 

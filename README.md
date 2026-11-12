@@ -7,7 +7,7 @@ Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-
 - batteria con JK-BMS;
 - caricabatterie Huawei R4850G2;
 - casa, cioè l'uscita AC dell'inverter;
-- rete del gestore, che entra **solo** nel R4850G2.
+- rete del gestore, che di norma entra solo nel R4850G2. Se è collegata anche all'ingresso AC dell'inverter, per esempio con il R4850G2 fuori uso, compare una seconda linea dal traliccio all'inverter.
 
 ![Anteprima](img/anteprima.png)
 
@@ -24,6 +24,7 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 - il LED verde, con un alone che pulsa, quando il R4850G2 è acceso;
 - sotto il R4850G2, la corrente d'aria della ventola: entra a sinistra, fredda (azzurra), ed esce a destra, calda (arancio), con accanto la temperatura dell'aria in ingresso e quella in uscita. Quando il R4850G2 è acceso l'aria si muove, in standby resta ferma e sbiadita;
 - la scintilla sul traliccio quando la rete fornisce energia;
+- la linea traliccio → inverter, con la scritta «dalla rete …», solo quando all'ingresso AC dell'inverter ci sono almeno 100 V o arriva potenza. Allora sotto il traliccio c'è il totale preso dalla rete (R4850G2 + inverter) e, se la casa assorbe dalla rete attraverso l'inverter, dietro la casa compare il traliccio;
 - sotto i testi dell'inverter, l'estrattore d'aria del locale con la scritta «estrattore ON/OFF»: le pale girano in azzurro quando è acceso, da spento è grigio e fermo. Compare solo se configuri la chiave `exhaust_fan` (vedi sotto), perché l'estrattore non è un'entità del firmware. Toccando il ventilatore si apre la sua finestra (da lì si accende e si spegne), toccando la scritta la Cronologia.
 
 | Flusso | Potenza mostrata |
@@ -33,6 +34,7 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 | inverter → casa | *SMG-II Output Active Power* |
 | inverter ↔ batteria | *BMS Potenza* − *R4850G2 Output Power*: il R4850G2 carica la batteria direttamente sul bus DC, quindi la sua potenza va tolta dal totale del BMS. Freccia ↓ verso la batteria, ↑ verso l'inverter |
 | rete → R4850G2 | *R4850G2 Input Power* |
+| rete → inverter | *SMG-II Mains Power*, solo con l'ingresso AC dell'inverter collegato |
 | R4850G2 → batteria | *R4850G2 Output Power* |
 
 I puntini si muovono nel verso del flusso, più veloci quando la potenza è più alta. Sotto la soglia (`threshold`, 10 W se non la imposti) il flusso è fermo e gli indicatori sono spenti.
@@ -55,7 +57,7 @@ Sotto lo schema c'è la fascia **Oggi** con l'energia del giorno, in kWh, azzera
 
 - **Prodotta FV**: energia prodotta dalle due stringhe;
 - **In casa**: energia erogata in casa dall'uscita AC dell'inverter;
-- **Dalla rete**: energia prelevata dalla rete dal R4850G2;
+- **Dalla rete**: energia prelevata dalla rete, dal R4850G2 e dall'ingresso AC dell'inverter;
 - **In batteria**: energia immessa in batteria, dal FV e dal R4850G2 insieme.
 
 I totali li calcola Home Assistant con il package [`homeassistant/packages/solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo/blob/main/homeassistant/packages/solar_combo_energia.yaml) del progetto solar-combo. Integra le potenze in kWh e ha gli `utility_meter` con ciclo giornaliero, che si azzerano a mezzanotte. Senza il package i riquadri non compaiono; `show_daily: false` nasconde la fascia.
@@ -135,6 +137,7 @@ Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo
 | `charge_auto` | `switch.{p}_gestione_automatica_carica` |
 | `charge_state` | `sensor.{p}_stato_gestione_carica` |
 | `grid_power`, `grid_voltage` | `sensor.{p}_r4850g2_input_power`, `_input_voltage` |
+| `inverter_grid_power`, `inverter_grid_voltage` | `sensor.{p}_{inv}_mains_power`, `_ac_mains_voltage` (rete all'ingresso AC dell'inverter) |
 | `charger_temp_in`, `charger_temp_out` | `sensor.{p}_r4850g2_input_temperature`, `_output_temperature` (aria in ingresso e in uscita) |
 | `charge_start`, `charge_stop` | `number.{p}_carica_avvio_sotto_cella_min`, `_carica_stop_sopra_cella_min` |
 | `charge_confirm`, `charge_min_ah` | `number.{p}_carica_conferma_avvio`, `_carica_ah_minimi` |

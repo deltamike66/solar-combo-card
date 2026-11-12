@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.14.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.14.0";
+/* Solar Combo Card 0.15.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.15.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -31,6 +31,8 @@ const ENTITA = {
   charge_state: "sensor.{p}_stato_gestione_carica",
   grid_power: "sensor.{p}_r4850g2_input_power",
   grid_voltage: "sensor.{p}_r4850g2_input_voltage",
+  inverter_grid_power: "sensor.{p}_{inv}_mains_power",
+  inverter_grid_voltage: "sensor.{p}_{inv}_ac_mains_voltage",
   charger_temp_in: "sensor.{p}_r4850g2_input_temperature",
   charger_temp_out: "sensor.{p}_r4850g2_output_temperature",
   charge_start: "number.{p}_carica_avvio_sotto_cella_min",
@@ -62,6 +64,8 @@ const OGGI = [
 ];
 
 const SOGLIA_W = 10;
+
+const TENSIONE_RETE_V = 100;
 
 const DUR_BASE = 1.5;
 const FONDO_SCALA_W = 500;
@@ -98,6 +102,7 @@ const FLUSSI = {
   batteria: { d: "M 130 225 L 130 288", colore: "var(--scc-batteria)" },
   r4850: { d: "M 245 310 L 152 310", colore: "var(--scc-caricatore)" },
   rete: { d: "M 381 310 L 295 310", colore: "var(--scc-rete)" },
+  inv_rete: { d: "M 410 297 L 430 297 L 430 146 L 300 146 L 300 186 L 151 186", colore: "var(--scc-rete)" },
 };
 
 const DISEGNI = {
@@ -221,7 +226,8 @@ const STORICO = {
   r48_stato: ["charger_standby", "charge_auto"], r48: ["charger_power"],
   r48_sub: ["charger_voltage", "charger_current"],
   r48_t_in: ["charger_temp_in", "charger_temp_out"], r48_t_out: ["charger_temp_in", "charger_temp_out"],
-  rete: ["grid_power"], rete_sub: ["grid_voltage"],
+  rete: ["grid_power", "inverter_grid_power"], rete_sub: ["grid_voltage", "inverter_grid_voltage"],
+  inv_rete: ["inverter_grid_power", "inverter_grid_voltage"],
   allarmi: ["bms_alarms"], allarmi_inv: ["inverter_fault", "inverter_warning"],
   auto: ["charge_auto"], c_stato: ["charge_state"],
   c_avvio: ["charge_start", "charge_confirm"], c_stop: ["charge_stop", "charge_min_ah"],
@@ -328,7 +334,7 @@ class SolarComboCard extends SccBase {
         ${DISEGNI[n.disegno]}
       </g>`).join("");
     const flussi = Object.entries(FLUSSI).map(([k, f]) => `
-      <g data-flusso="${k}" style="--c:${f.colore}">
+      <g data-flusso="${k}"${k === "inv_rete" ? ' class="rete-inv"' : ""} style="--c:${f.colore}">
         <path class="linea" d="${f.d}"></path>
         <path class="punti" d="${f.d}"></path>
       </g>`).join("");
@@ -380,6 +386,8 @@ class SolarComboCard extends SccBase {
           <text class="tit" x="390" y="266">Rete</text>
           <text class="val" x="390" y="354" data-t="rete"></text>
           <text class="sub" x="390" y="368" data-t="rete_sub"></text>
+          <!-- rete all'ingresso AC dell'inverter: valore sopra la linea -->
+          <text class="sub rete-inv" x="365" y="140" data-t="inv_rete"></text>
         </svg>
         ${this._config.show_daily === false ? "" : `
         <div class="oggi">
@@ -445,7 +453,7 @@ class SolarComboCard extends SccBase {
     if (!(pR48 > 0) && Number.isFinite(vR48) && Number.isFinite(iR48) && vR48 * iR48 > 0) pR48 = vR48 * iR48;
     const standby = this._stato("charger_standby");
     const auto = this._stato("charge_auto");
-    const statoR48 = standby ? (standby.state === "on" ? "STANDBY" : "ACCESO") : "—";
+    const statoR48 = standby && standby.state === "on" ? "STANDBY" : standby && standby.state === "off" ? "ACCESO" : "—";
     const modoR48 = auto ? (auto.state === "on" ? "AUTO" : "MANUALE") : "";
     this._testo("r48_stato", modoR48 ? `${statoR48} · ${modoR48}` : statoR48);
     this._testo("r48", this._potenza(pR48));
@@ -460,6 +468,22 @@ class SolarComboCard extends SccBase {
     this._flusso("rete", pRete);
     this._nodo("rete", "attivo", pRete >= this._soglia);
     return pR48;
+  }
+
+  _aggiornaReteInverter() {
+    const p = this._num("inverter_grid_power");
+    const v = this._num("inverter_grid_voltage");
+    const visibile = !!this._ent.inverter_grid_power && (v >= TENSIONE_RETE_V || Math.abs(p) >= this._soglia);
+    this.shadowRoot.querySelectorAll(".rete-inv").forEach((el) => el.classList.toggle("nascosto", !visibile));
+    if (!visibile) return 0;
+    this._testo("inv_rete", `dalla rete ${this._potenza(p)}`);
+    this._flusso("inv_rete", p);
+    const pCar = this._num("grid_power");
+    const tot = (Number.isFinite(pCar) ? pCar : 0) + (Number.isFinite(p) ? p : 0);
+    this._testo("rete", this._potenza(tot));
+    if (!Number.isFinite(this._num("grid_voltage")) && Number.isFinite(v)) this._testo("rete_sub", `${this._fmt(v)} V`);
+    if (tot >= this._soglia) this._nodo("rete", "attivo", true);
+    return Number.isFinite(p) ? p : 0;
   }
 
   _caricaDaRete(pCar) {
@@ -568,6 +592,7 @@ class SolarComboCard extends SccBase {
     this._nodo("batteria", "in-carica", pBatt >= this._soglia);
 
     const pR48 = this._aggiornaCaricatore();
+    const pInvRete = this._aggiornaReteInverter();
 
     let pInvBatt = this._num("inverter_battery_power");
     if (!Number.isFinite(pInvBatt)) pInvBatt = this._invBatteria(pBatt, pR48);
@@ -579,7 +604,7 @@ class SolarComboCard extends SccBase {
     this._nodo("casa", "da-solare", consuma && pvTot >= this._soglia);
     const daBatteria = consuma && pInvBatt <= -this._soglia;
     this._nodo("casa", "da-batteria", daBatteria);
-    this._nodo("casa", "da-rete", daBatteria && this._caricaDaRete(pR48));
+    this._nodo("casa", "da-rete", (daBatteria && this._caricaDaRete(pR48)) || (consuma && pInvRete >= this._soglia));
 
     if (this._config.show_daily !== false) {
       let presenti = 0;
