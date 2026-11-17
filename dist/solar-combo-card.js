@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.15.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.15.0";
+/* Solar Combo Card 0.15.1 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.15.1";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -743,7 +743,8 @@ class SolarComboGenericCard extends SolarComboCard {
 
   _invBatteria(pBatt, pCar) {
     if (this._caricaAttiva && !Number.isFinite(pCar)) {
-      const fv = this._num("pv1_power") + this._num("pv2_power");
+      const stringhe = ["pv1_power", "pv2_power"].map((k) => this._num(k)).filter(Number.isFinite);
+      const fv = stringhe.length ? stringhe.reduce((a, b) => a + b, 0) : NaN;
       const casa = this._num("load_power");
       return Number.isFinite(fv) && Number.isFinite(casa) ? fv - casa : NaN;
     }

@@ -2,6 +2,14 @@
 
 Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
 
+## 0.15.1
+
+**Istruzioni per usare le card senza il firmware solar-combo.** Nel README c'è la nuova sezione «Usare le card senza il firmware solar-combo», per chi prende i dati da un'altra integrazione (altro firmware ESPHome, Solarman, integrazioni dell'inverter o del BMS...).
+
+- Perché aggiornare: spiega come collegare le tue entità alla Solar Combo Card, alla BMS Card e alla Generic Card. Per ogni chiave dice il tipo di entità, l'unità e il segno attesi, e quali chiavi sono indispensabili. Ci sono esempi completi, sensori template per convertire kW → W, V → mV e il segno della batteria, e il modo di avere la fascia «Oggi» senza il package.
+- Attenzione: la card non converte le unità. Le potenze vanno in W e Δ celle in mV, e la batteria deve essere positiva in carica.
+- Correzione nella Generic Card: con il relè acceso, senza misure del caricabatterie e con una sola stringa FV (`pv2_power: null`), il flusso inverter ↔ batteria non compariva. Ora il FV è la somma delle sole stringhe disponibili.
+
 ## 0.15.0
 
 **Rete sull'ingresso AC dell'inverter.** Se la rete del gestore è collegata anche all'inverter, per esempio con il R4850G2 fuori uso, compare una linea dal traliccio all'inverter con la scritta «dalla rete …».

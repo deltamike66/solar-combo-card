@@ -113,6 +113,8 @@ entities:                   # facoltativo: sostituisce le singole entità
 
 Gli entity_id predefiniti sono quelli che Home Assistant crea per il dispositivo ESPHome `solar-combo`.
 
+> **Non usi il firmware solar-combo?** Le card funzionano con entità di qualsiasi integrazione (altri firmware ESPHome, Solarman, integrazioni dell'inverter o del BMS, sensori template...). Vedi **[Usare le card senza il firmware solar-combo](#usare-le-card-senza-il-firmware-solar-combo)**: che entità servono, con quali unità e segni, ed esempi completi.
+
 - Se hai rinominato il dispositivo, cambia `prefix`.
 - Le entità dell'inverter contengono il suo nome (`inv_name: SMG-II` nel firmware, quindi `smg_ii`). Se cambi inverter e quindi `inv_name`, basta impostare `inverter` con il nuovo nome in minuscolo, con `_` al posto di spazi e trattini.
 - Se hai rinominato una sola entità, mettila sotto `entities`.
@@ -230,3 +232,284 @@ entities:
 | `charger_voltage`, `charger_current` | tensione e corrente d'uscita del caricabatterie, scritte sotto la potenza |
 | `grid_power`, `grid_voltage` | potenza e tensione della rete, sotto il traliccio (per esempio da una presa smart con misura) |
 | le altre | come nella Solar Combo Card (`prefix`, `inverter`, `threshold`, `flow_scale`, `flow_max_speed`, `show_daily` e le entità di FV, inverter, batteria, casa ed energia del giorno) |
+
+## Usare le card senza il firmware solar-combo
+
+Le tre card leggono semplicemente degli stati di Home Assistant: non importa da quale integrazione arrivano. Se non usi il firmware `solar-combo.yaml`, indica tu sotto `entities` l'entity_id di ogni dato. Le chiavi che non indichi restano su quelle predefinite del firmware (`sensor.solar_combo_...`) e, se nel tuo Home Assistant non esistono, la card le tratta come mancanti.
+
+### Trovare gli entity_id
+
+- **Impostazioni → Dispositivi e servizi → Entità**: cerca per nome e apri l'entità; l'entity_id è in **⚙ Impostazioni → ID entità**.
+- **Strumenti per sviluppatori → Stati**: mostra per ogni entità lo stato attuale e gli attributi, compresa `unit_of_measurement`. Qui controlli subito unità e segno (per esempio se la potenza della batteria è positiva o negativa mentre carica).
+
+### Regole che valgono per tutte le card
+
+1. **Unità fisse, nessuna conversione.** La card prende il numero dello stato così com'è e **non guarda `unit_of_measurement`**. Un sensore in kW verrebbe letto come W (1,2 kW diventa 1,2 W). Le unità attese sono:
+
+   | Grandezza | Unità |
+   |---|---|
+   | potenze | **W** |
+   | tensioni (anche delle celle) | **V** |
+   | Δ celle | **mV** |
+   | correnti | **A** |
+   | temperature | **°C** |
+   | SOC | **%** (0–100) |
+   | energia del giorno | **kWh** |
+   | capacità | **Ah** |
+
+   Se la tua integrazione usa un'altra unità, crea un sensore template che converte (vedi [sotto](#sensori-template-per-convertire-unità-e-segni)).
+
+2. **Segni.**
+
+   | Chiave | Positivo quando… |
+   |---|---|
+   | `battery_power` (Solar Combo / Generic), `power` e `current` (BMS Card) | la batteria **si carica** (negativo in scarica) |
+   | `inverter_battery_power` | l'energia va **dall'inverter alla batteria** |
+   | `load_power`, `pv1_power`, `pv2_power`, `grid_power`, `inverter_grid_power`, `charger_power` | sempre positivo nel verso normale (dalla sorgente verso il carico) |
+
+   Se la tua batteria è negativa in carica, inverti il segno con un template.
+
+3. **Stati on/off.** Interruttori e sensori binari valgono `on`/`off`: vanno bene `switch`, `binary_sensor`, `input_boolean`, `light`, `fan`. Attenzione a `charger_standby`: **`on` vuol dire caricabatterie in standby** (spento), `off` vuol dire acceso.
+4. **Testi.** `inverter_mode` e `charge_state` si mostrano così come sono, qualunque testo sia. Per `inverter_fault`, `inverter_warning`, `bms_alarms` e `alarms` un testo vuoto, `unknown` o `unavailable` vuol dire «nessun allarme»; qualsiasi altro testo viene mostrato come allarme.
+5. **Entità mancanti.** Se una chiave punta a un'entità che non esiste, al posto del valore compare «—» e il flusso relativo resta fermo; la card non dà errori. Per dire esplicitamente che un dato non c'è scrivi `null`: per esempio `inverter_grid_power: null` toglie la linea rete → inverter. Alcune parti spariscono da sole se mancano le loro entità: la fascia «Oggi», l'estrattore (`exhaust_fan`) e, nella BMS Card, capacità, MOS, bilanciamento, sonde di temperatura, media celle e le altre voci della parte bassa.
+
+### Solar Combo Card: cosa serve per ogni chiave
+
+Per uno schema che funziona bastano le chiavi **indispensabili**; le altre aggiungono testi e dettagli.
+
+| Chiave | Tipo di entità | Unità | Note |
+|---|---|---|---|
+| `pv1_power`, `pv2_power` | sensor | W | **indispensabili** (con una sola stringa, `pv2_power: null`: PV2 mostra «—») |
+| `pv1_voltage`, `pv1_current`, `pv2_voltage`, `pv2_current` | sensor | V, A | testo sotto ogni stringa |
+| `load_power` | sensor | W | **indispensabile**: potenza erogata in casa dall'inverter |
+| `load_voltage` | sensor | V | tensione d'uscita |
+| `battery_power` | sensor | W | **indispensabile**, positiva in carica |
+| `battery_soc` | sensor | % | riempimento della batteria |
+| `battery_voltage`, `battery_current` | sensor | V, A | |
+| `cell_min`, `cell_max` | sensor | V | tensione della cella più bassa e più alta |
+| `cell_delta` | sensor | **mV** | |
+| `inverter_mode` | sensor (testo) | — | stato dell'inverter, mostrato com'è |
+| `inverter_temp`, `room_temp` | sensor | °C | temperatura dell'inverter e del locale |
+| `inverter_fault`, `inverter_warning`, `bms_alarms` | sensor (testo) | — | in fondo alla card; vuoto = nessuno |
+| `charger_power` | sensor | W | potenza data alla batteria dal caricabatterie; se manca si calcola tensione × corrente |
+| `charger_voltage`, `charger_current` | sensor | V, A | uscita del caricabatterie |
+| `charger_standby` | switch / binary_sensor | — | **`on` = standby**, `off` = acceso (LED verde, aria che si muove) |
+| `charger_temp_in`, `charger_temp_out` | sensor | °C | aria in ingresso e in uscita del caricabatterie |
+| `grid_power`, `grid_voltage` | sensor | W, V | rete che entra nel caricabatterie |
+| `inverter_grid_power`, `inverter_grid_voltage` | sensor | W, V | rete all'ingresso AC dell'inverter; `null` se non c'è |
+| `inverter_battery_power` | sensor | W | facoltativa, positiva verso la batteria: sostituisce il calcolo `battery_power` − `charger_power` |
+| `energy_pv`, `energy_load`, `energy_grid`, `energy_battery_in` | sensor | kWh | fascia «Oggi», vedi [sotto](#fascia-oggi-senza-il-package) |
+| `exhaust_fan` | switch / fan | — | estrattore del locale, facoltativo |
+| `charge_auto`, `charge_state` e le altre chiavi `charge_*`, `charged_ah`, `cell_max_*`, `days_since_full`, `full_charge_days` | — | — | logica di carica del firmware solar-combo: senza quel firmware metti `show_charge: false` |
+
+**Come si calcola il flusso inverter ↔ batteria.** Se c'è `inverter_battery_power` si usa quella. Altrimenti è `battery_power` − `charger_power`: il caricabatterie carica la batteria direttamente sul bus DC, quindi la sua parte non passa dall'inverter. Senza caricabatterie (`charger_power` mancante) è semplicemente `battery_power`.
+
+Esempio con entità di un'altra integrazione (inverter con una sola stringa, nessun caricabatterie esterno):
+
+```yaml
+type: custom:solar-combo-card
+title: Impianto
+show_charge: false            # niente logica di carica del firmware solar-combo
+show_daily: false             # oppure indica le quattro energy_* (vedi sotto)
+entities:
+  pv1_power: sensor.inverter_pv_power
+  pv1_voltage: sensor.inverter_pv_voltage
+  pv1_current: sensor.inverter_pv_current
+  pv2_power: null
+  pv2_voltage: null
+  pv2_current: null
+  inverter_mode: sensor.inverter_device_mode
+  inverter_temp: sensor.inverter_temperature
+  room_temp: null
+  load_power: sensor.inverter_load_power
+  load_voltage: sensor.inverter_output_voltage
+  battery_soc: sensor.batteria_soc
+  battery_power: sensor.batteria_potenza            # W, positiva in carica
+  battery_voltage: sensor.batteria_tensione
+  battery_current: sensor.batteria_corrente
+  cell_min: sensor.batteria_cella_min
+  cell_max: sensor.batteria_cella_max
+  cell_delta: sensor.batteria_delta_celle_mv        # mV
+  inverter_fault: sensor.inverter_fault
+  inverter_warning: sensor.inverter_warning
+  bms_alarms: sensor.batteria_allarmi
+  # nessun caricabatterie: tutte le chiavi del caricabatterie a null
+  charger_power: null
+  charger_voltage: null
+  charger_current: null
+  charger_standby: null
+  charger_temp_in: null
+  charger_temp_out: null
+  grid_power: null
+  grid_voltage: null
+  # rete collegata all'ingresso AC dell'inverter
+  inverter_grid_power: sensor.inverter_grid_power
+  inverter_grid_voltage: sensor.inverter_grid_voltage
+```
+
+Senza caricabatterie esterno lo schema mostra comunque il nodo «R4850G2», con «—» e i flussi fermi. Se invece carichi la batteria dalla rete con un caricabatterie qualsiasi comandato da un relè o da una presa smart, usa la **[Solar Combo Generic Card](#solar-combo-generic-card)**.
+
+### Solar Combo Generic Card: cosa serve
+
+Le stesse chiavi della Solar Combo Card per FV, inverter, batteria, casa, rete all'ingresso dell'inverter, energia del giorno ed estrattore, più quelle del caricabatterie generico:
+
+| Chiave | Tipo di entità | Unità | Note |
+|---|---|---|---|
+| `charger_relay` | switch / light / fan / input_boolean | — | **indispensabile**: `on` = caricabatterie acceso |
+| `charger_power` | sensor | W | potenza data alla batteria; se manca, tensione × corrente |
+| `charger_voltage`, `charger_current` | sensor | V, A | |
+| `grid_power`, `grid_voltage` | sensor | W, V | rete che entra nel caricabatterie, per esempio da una presa smart con misura |
+
+Non ci sono le chiavi `charger_standby`, `charger_temp_*`, `charge_*` e il pannello della carica. Senza nessuna misura della potenza del caricabatterie, il flusso inverter ↔ batteria si stima come FV − casa.
+
+### Solar Combo BMS Card: cosa serve per ogni chiave
+
+Funziona con qualsiasi BMS (JK, Daly, JBD, Seplos, Pylontech...), purché i valori arrivino in Home Assistant come entità separate.
+
+| Chiave | Tipo di entità | Unità | Note |
+|---|---|---|---|
+| `soc` | sensor | % | **indispensabile**: l'anello |
+| `voltage`, `current` | sensor | V, A | **indispensabili**; la corrente è **positiva in carica** e decide IN CARICA / IN SCARICA / A RIPOSO (soglia `threshold`, 0,5 A) |
+| `power` | sensor | **W** | positiva in carica; la card la mostra in kW |
+| `cell_1` … `cell_32` | sensor | V | tensione di ogni cella; la griglia mostra le prime `cells` |
+| `cell_min`, `cell_max`, `cell_avg` | sensor | V | il numero della cella min/max lo trova la card dalla griglia |
+| `cell_delta` | sensor | **mV** | |
+| `capacity_total`, `capacity_remaining` | sensor | Ah | se mancano spariscono |
+| `temp_mos`, `temp_1` … `temp_4` | sensor | °C | quelle che mancano non compaiono |
+| `balancing` | binary_sensor / switch | — | `on` = bilanciamento in corso |
+| `balancing_current` | sensor | A | |
+| `charge_mos`, `discharge_mos` | binary_sensor / switch | — | `on` = MOS chiuso (ON in verde) |
+| `cycles` | sensor | — | cicli di carica |
+| `alarms` | sensor (testo) | — | vuoto = nessun allarme |
+| `cell_count` | sensor / number | — | numero di celle, se non imposti `cells` |
+
+Con un BMS diverso conviene impostare sempre `cells`: senza `cells` e senza `cell_count` la card mostra 16 celle.
+
+```yaml
+type: custom:solar-combo-bms-card
+title: Batteria
+cells: 8
+cell_columns: 4
+entities:
+  soc: sensor.bms_soc
+  voltage: sensor.bms_voltage
+  current: sensor.bms_current          # A, positiva in carica
+  power: sensor.bms_power              # W, positiva in carica
+  capacity_total: sensor.bms_capacity
+  capacity_remaining: sensor.bms_remaining_capacity
+  cell_min: sensor.bms_min_cell_voltage
+  cell_max: sensor.bms_max_cell_voltage
+  cell_avg: sensor.bms_average_cell_voltage
+  cell_delta: sensor.bms_delta_mv      # mV
+  temp_mos: sensor.bms_mos_temperature
+  temp_1: sensor.bms_temperature_1
+  temp_2: sensor.bms_temperature_2
+  temp_3: null
+  temp_4: null
+  balancing: binary_sensor.bms_balancing
+  balancing_current: sensor.bms_balancing_current
+  charge_mos: binary_sensor.bms_charging
+  discharge_mos: binary_sensor.bms_discharging
+  cycles: sensor.bms_cycles
+  alarms: sensor.bms_errors
+  cell_1: sensor.bms_cell_voltage_1
+  cell_2: sensor.bms_cell_voltage_2
+  cell_3: sensor.bms_cell_voltage_3
+  cell_4: sensor.bms_cell_voltage_4
+  cell_5: sensor.bms_cell_voltage_5
+  cell_6: sensor.bms_cell_voltage_6
+  cell_7: sensor.bms_cell_voltage_7
+  cell_8: sensor.bms_cell_voltage_8
+```
+
+Se il tuo dispositivo ESPHome segue lo stesso schema di nomi del firmware solar-combo (`sensor.<dispositivo>_bms_cella_1` ...), basta `prefix: <dispositivo>` senza elencare le entità.
+
+### Sensori template per convertire unità e segni
+
+Si creano in `configuration.yaml` (o in un package) e poi si indicano nella card al posto dell'entità originale. Oppure dall'interfaccia: **Impostazioni → Dispositivi e servizi → Aiutanti → Crea aiutante → Template → Sensore**.
+
+```yaml
+template:
+  - sensor:
+      # kW -> W
+      - name: "Batteria potenza W"
+        unique_id: batteria_potenza_w
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: "{{ has_value('sensor.batteria_potenza_kw') }}"
+        state: "{{ (states('sensor.batteria_potenza_kw') | float * 1000) | round(0) }}"
+
+      # segno invertito: la tua batteria è negativa in carica
+      - name: "Batteria potenza carica positiva"
+        unique_id: batteria_potenza_carica_positiva
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: "{{ has_value('sensor.batteria_potenza') }}"
+        state: "{{ 0 - states('sensor.batteria_potenza') | float }}"
+
+      # Δ celle in V -> mV
+      - name: "Batteria delta celle mV"
+        unique_id: batteria_delta_celle_mv
+        unit_of_measurement: "mV"
+        state_class: measurement
+        availability: "{{ has_value('sensor.batteria_delta_celle') }}"
+        state: "{{ (states('sensor.batteria_delta_celle') | float * 1000) | round(0) }}"
+
+      # potenza della batteria da tensione × corrente, se l'integrazione non la dà
+      - name: "Batteria potenza calcolata"
+        unique_id: batteria_potenza_calcolata
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: "{{ has_value('sensor.batteria_tensione') and has_value('sensor.batteria_corrente') }}"
+        state: "{{ (states('sensor.batteria_tensione') | float * states('sensor.batteria_corrente') | float) | round(0) }}"
+```
+
+Allo stesso modo si ottengono `cell_min`, `cell_max` e `cell_delta` dalle singole celle, se il BMS non li fornisce:
+
+```yaml
+template:
+  - sensor:
+      - name: "Batteria cella min"
+        unique_id: batteria_cella_min
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        state: >-
+          {{ expand('sensor.bms_cell_voltage_1', 'sensor.bms_cell_voltage_2',
+                    'sensor.bms_cell_voltage_3', 'sensor.bms_cell_voltage_4')
+             | map(attribute='state') | map('float', none) | reject('none') | min }}
+```
+
+(per la massima `max` al posto di `min`; per il Δ in mV la differenza fra le due × 1000).
+
+### Fascia «Oggi» senza il package
+
+La fascia legge quattro sensori di **energia del giorno in kWh, che si azzerano a mezzanotte**: `energy_pv`, `energy_load`, `energy_grid`, `energy_battery_in`. Ogni riquadro compare solo se la sua entità esiste.
+
+- Se la tua integrazione ha già contatori giornalieri (molti inverter danno «produzione di oggi», «consumo di oggi»...), indicali direttamente sotto `entities`, controllando che siano in kWh.
+- Altrimenti prendi come modello il package [`solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo/blob/main/homeassistant/packages/solar_combo_energia.yaml): un sensore `integration` trasforma la potenza (W) in energia (kWh), un `utility_meter` con `cycle: daily` la azzera ogni giorno. Basta sostituire le entità `sensor.solar_combo_...` con le tue e cambiare nomi e `unique_id`.
+
+```yaml
+sensor:
+  - platform: integration
+    name: "Energia FV"
+    unique_id: energia_fv
+    source: sensor.inverter_pv_power     # W
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+
+utility_meter:
+  fv_giorno:
+    name: "FV giorno"
+    unique_id: fv_giorno
+    source: sensor.energia_fv
+    cycle: daily
+```
+
+e nella card `energy_pv: sensor.fv_giorno`. Per «In batteria» integra solo la parte positiva della potenza della batteria (un template con `max(potenza, 0)`, come nel package).
