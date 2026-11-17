@@ -60,7 +60,21 @@ Sotto lo schema c'è la fascia **Oggi** con l'energia del giorno, in kWh, azzera
 - **Dalla rete**: energia prelevata dalla rete, dal R4850G2 e dall'ingresso AC dell'inverter;
 - **In batteria**: energia immessa in batteria, dal FV e dal R4850G2 insieme.
 
-I totali li calcola Home Assistant con il package [`homeassistant/packages/solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo/blob/main/homeassistant/packages/solar_combo_energia.yaml) del progetto solar-combo. Integra le potenze in kWh e ha gli `utility_meter` con ciclo giornaliero, che si azzerano a mezzanotte. Senza il package i riquadri non compaiono; `show_daily: false` nasconde la fascia.
+I totali li calcola Home Assistant con il package [`packages/solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo-card/blob/main/packages/solar_combo_energia.yaml) di questo repository. Integra le potenze in kWh e ha gli `utility_meter` con ciclo giornaliero, che si azzerano a mezzanotte. Senza il package i riquadri non compaiono; `show_daily: false` nasconde la fascia.
+
+Per installarlo:
+
+1. Copia il file in `/config/packages/solar_combo_energia.yaml` (crea la cartella `packages` se non c'è). Il nome del file diventa il nome del package: solo minuscole, cifre e `_`.
+2. Se non c'è già, aggiungi in `configuration.yaml`:
+
+   ```yaml
+   homeassistant:
+     packages: !include_dir_named packages
+   ```
+
+3. Riavvia Home Assistant.
+
+Il package legge le entità del dispositivo ESPHome `solar-combo` (`sensor.solar_combo_...`). Se il tuo dispositivo ha un altro nome, o non usi quel firmware, sostituisci le entità nel file (vedi [Fascia «Oggi» senza il package](#fascia-oggi-senza-il-package)).
 
 Più in basso c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature — quelle dell'aria del R4850G2 aprono ingresso e uscita insieme —, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
 
@@ -490,7 +504,7 @@ template:
 La fascia legge quattro sensori di **energia del giorno in kWh, che si azzerano a mezzanotte**: `energy_pv`, `energy_load`, `energy_grid`, `energy_battery_in`. Ogni riquadro compare solo se la sua entità esiste.
 
 - Se la tua integrazione ha già contatori giornalieri (molti inverter danno «produzione di oggi», «consumo di oggi»...), indicali direttamente sotto `entities`, controllando che siano in kWh.
-- Altrimenti prendi come modello il package [`solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo/blob/main/homeassistant/packages/solar_combo_energia.yaml): un sensore `integration` trasforma la potenza (W) in energia (kWh), un `utility_meter` con `cycle: daily` la azzera ogni giorno. Basta sostituire le entità `sensor.solar_combo_...` con le tue e cambiare nomi e `unique_id`.
+- Altrimenti prendi come modello il package [`packages/solar_combo_energia.yaml`](https://github.com/deltamike66/solar-combo-card/blob/main/packages/solar_combo_energia.yaml) di questo repository: un sensore `integration` trasforma la potenza (W) in energia (kWh), un `utility_meter` con `cycle: daily` la azzera ogni giorno. Basta sostituire le entità `sensor.solar_combo_...` con le tue e cambiare nomi e `unique_id`.
 
 ```yaml
 sensor:

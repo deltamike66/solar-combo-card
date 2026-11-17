@@ -1,0 +1,138 @@
+# Package Home Assistant con i totali giornalieri di energia dell'impianto
+# solar-combo, mostrati nella fascia "Oggi" della Solar Combo Card
+# (homeassistant/solar-combo-card): FV, casa, carica e scarica della batteria,
+# rete (ingresso del R4850G2 + ingresso AC dell'inverter). Si calcolano in HA dalle potenze perché il firmware non espone
+# contatori di energia. Solo visualizzazione: non comanda nulla (la logica di
+# carica è sull'ESP32).
+#
+# La card legge i quattro utility_meter giornalieri (fv, casa, rete, batteria
+# carica): non rinominarli.
+#
+# Installazione: copiare il file in /config/packages/ e, se non c'è già, in
+# configuration.yaml:
+#   homeassistant:
+#     packages: !include_dir_named packages
+# Il nome del file diventa il nome del package: solo minuscole, cifre e "_"
+# (con il trattino HA rifiuta il package).
+# Chi aveva il vecchio sunsynk_card.yaml deve toglierlo da /config/packages/:
+# gli unique_id sono gli stessi, quindi entità e storico restano, ma i due
+# file insieme darebbero entità duplicate.
+template:
+  - sensor:
+      # Potenza della batteria divisa per verso, per integrare carica e scarica
+      # separatamente (BMS Potenza è positiva in carica, negativa in scarica).
+      - name: "solar-combo Batteria potenza carica"
+        unique_id: solar_combo_batteria_potenza_carica
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: "{{ has_value('sensor.solar_combo_bms_potenza') }}"
+        state: "{{ [states('sensor.solar_combo_bms_potenza') | float(0), 0] | max }}"
+      - name: "solar-combo Batteria potenza scarica"
+        unique_id: solar_combo_batteria_potenza_scarica
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: "{{ has_value('sensor.solar_combo_bms_potenza') }}"
+        state: "{{ [0 - states('sensor.solar_combo_bms_potenza') | float(0), 0] | max }}"
+      # Potenza presa dalla rete: ingresso del R4850G2 + ingresso AC
+      # dell'inverter (collegato per esempio con il R4850G2 fuori uso). Una
+      # delle due può mancare: conta come 0.
+      - name: "solar-combo Rete potenza totale"
+        unique_id: solar_combo_rete_potenza_totale
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        availability: >-
+          {{ has_value('sensor.solar_combo_r4850g2_input_power')
+             or has_value('sensor.solar_combo_smg_ii_mains_power') }}
+        state: >-
+          {{ [states('sensor.solar_combo_r4850g2_input_power') | float(0), 0] | max
+             + [states('sensor.solar_combo_smg_ii_mains_power') | float(0), 0] | max }}
+
+# Energia (kWh) dalle potenze: somma di Riemann a sinistra, adatta a valori a
+# gradini; max_sub_interval fa avanzare il totale anche se la potenza resta
+# uguale a lungo (per esempio a 0 W di notte).
+sensor:
+  - platform: integration
+    name: "solar-combo Energia FV"
+    unique_id: solar_combo_energia_fv
+    source: sensor.solar_combo_smg_ii_pv1_2_power
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+  - platform: integration
+    name: "solar-combo Energia casa"
+    unique_id: solar_combo_energia_casa
+    source: sensor.solar_combo_smg_ii_output_active_power
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+  - platform: integration
+    name: "solar-combo Energia batteria carica"
+    unique_id: solar_combo_energia_batteria_carica
+    source: sensor.solar_combo_batteria_potenza_carica
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+  - platform: integration
+    name: "solar-combo Energia batteria scarica"
+    unique_id: solar_combo_energia_batteria_scarica
+    source: sensor.solar_combo_batteria_potenza_scarica
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+  - platform: integration
+    name: "solar-combo Energia rete R4850G2"
+    unique_id: solar_combo_energia_rete_r4850g2
+    source: sensor.solar_combo_r4850g2_input_power
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+  - platform: integration
+    name: "solar-combo Energia rete"
+    unique_id: solar_combo_energia_rete
+    source: sensor.solar_combo_rete_potenza_totale
+    unit_prefix: k
+    unit_time: h
+    method: left
+    round: 3
+    max_sub_interval: {minutes: 1}
+
+# Totali giornalieri per la card (azzerati a mezzanotte).
+utility_meter:
+  solar_combo_fv_giorno:
+    name: "solar-combo FV giorno"
+    unique_id: solar_combo_fv_giorno
+    source: sensor.solar_combo_energia_fv
+    cycle: daily
+  solar_combo_casa_giorno:
+    name: "solar-combo Casa giorno"
+    unique_id: solar_combo_casa_giorno
+    source: sensor.solar_combo_energia_casa
+    cycle: daily
+  solar_combo_batteria_carica_giorno:
+    name: "solar-combo Batteria carica giorno"
+    unique_id: solar_combo_batteria_carica_giorno
+    source: sensor.solar_combo_energia_batteria_carica
+    cycle: daily
+  solar_combo_batteria_scarica_giorno:
+    name: "solar-combo Batteria scarica giorno"
+    unique_id: solar_combo_batteria_scarica_giorno
+    source: sensor.solar_combo_energia_batteria_scarica
+    cycle: daily
+  solar_combo_rete_giorno:
+    name: "solar-combo Rete giorno"
+    unique_id: solar_combo_rete_giorno
+    source: sensor.solar_combo_energia_rete
+    cycle: daily
