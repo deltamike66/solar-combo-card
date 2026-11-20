@@ -1,6 +1,6 @@
 # Solar Combo Card
 
-Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-combo** (firmware `esphome/solar-combo.yaml`):
+Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-combo**:
 
 - 2 stringhe fotovoltaiche (PV1, PV2) dell'inverter;
 - inverter Easun SMG II, sempre in off-grid;
@@ -10,6 +10,8 @@ Card Lovelace per Home Assistant con il flusso di energia dell'impianto **solar-
 - rete del gestore, che di norma entra solo nel R4850G2. Se è collegata anche all'ingresso AC dell'inverter, per esempio con il R4850G2 fuori uso, compare una seconda linea dal traliccio all'inverter.
 
 ![Anteprima](img/anteprima.png)
+
+> **Firmware.** Le card sono nate per *solar-combo*, un firmware ESPHome per questo impianto che **non è pubblico**; nel README ne compare anche una variante, *solar-offgrid-c3*, anch'essa non pubblica. Da quei firmware vengono soltanto gli entity_id predefiniti (`sensor.solar_combo_...`). Con qualsiasi altra integrazione basta indicare le proprie entità: vedi [Usare le card senza il firmware solar-combo](#usare-le-card-senza-il-firmware-solar-combo).
 
 Nello stesso file ci sono anche la **[Solar Combo BMS Card](#solar-combo-bms-card)**, la card del pacco batterie con il JK-BMS, e la **[Solar Combo Generic Card](#solar-combo-generic-card)**, lo stesso schema con un caricabatterie generico acceso da un relè al posto del R4850G2.
 
@@ -249,7 +251,7 @@ entities:
 
 ## Usare le card senza il firmware solar-combo
 
-Le tre card leggono semplicemente degli stati di Home Assistant: non importa da quale integrazione arrivano. Se non usi il firmware `solar-combo.yaml`, indica tu sotto `entities` l'entity_id di ogni dato. Le chiavi che non indichi restano su quelle predefinite del firmware (`sensor.solar_combo_...`) e, se nel tuo Home Assistant non esistono, la card le tratta come mancanti.
+Le tre card leggono semplicemente degli stati di Home Assistant: non importa da quale integrazione arrivano. Non avendo il firmware solar-combo, che non è pubblico, indica tu sotto `entities` l'entity_id di ogni dato. Le chiavi che non indichi restano su quelle predefinite del firmware (`sensor.solar_combo_...`) e, se nel tuo Home Assistant non esistono, la card le tratta come mancanti.
 
 ### Trovare gli entity_id
 

@@ -2,6 +2,10 @@
 
 Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
 
+## 0.15.2
+
+**Solo README: chiarito che il firmware solar-combo non è pubblico.** Le card sono nate per quel firmware, da cui vengono soltanto gli entity_id predefiniti; con qualsiasi altra integrazione basta indicare le proprie entità. Nessuna modifica alla card: l'aggiornamento è facoltativo.
+
 ## 0.15.1
 
 **Istruzioni per usare le card senza il firmware solar-combo.** Nel README c'è la nuova sezione «Usare le card senza il firmware solar-combo», per chi prende i dati da un'altra integrazione (altro firmware ESPHome, Solarman, integrazioni dell'inverter o del BMS...).
