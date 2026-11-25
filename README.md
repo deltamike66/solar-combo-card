@@ -84,14 +84,16 @@ Più in basso c'è il pannello **Gestione automatica carica**: se è attiva, lo 
 
 La card è un solo file JavaScript, senza dipendenze e senza compilazione: `dist/solar-combo-card.js`. Lo stesso file contiene anche la Solar Combo BMS Card: installandolo si hanno tutte e due.
 
-### Con HACS
+### Con il Marketplace (HACS)
 
-1. Apri **HACS**, menu **⋮** in alto a destra → **Archivi digitali personalizzati**.
+Nelle versioni recenti di Home Assistant il menù **HACS** si chiama **Marketplace**: se il tuo ha ancora il vecchio nome, i passi sono gli stessi.
+
+1. Apri **Marketplace** (prima **HACS**), menu **⋮** in alto a destra → **Archivi digitali personalizzati**.
 2. In **Archivio digitale** incolla `https://github.com/deltamike66/solar-combo-card`, come **Tipo** scegli **Dashboard** e premi **Aggiungi**.
-3. Cerca **Solar Combo Card** in HACS, aprila e premi **Scarica**: la risorsa viene aggiunta da sola.
+3. Cerca **Solar Combo Card** nel Marketplace, aprila e premi **Scarica**: la risorsa viene aggiunta da sola.
 4. Ricarica la pagina del browser.
 
-Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
+Gli aggiornamenti compaiono nel Marketplace a ogni nuova release del repository.
 
 ### A mano
 
@@ -106,7 +108,7 @@ Gli aggiornamenti compaiono in HACS a ogni nuova release del repository.
          type: module
    ```
 
-   Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate con HACS), vanno elencate anche loro.
+   Senza `resource_mode: yaml` la lista `resources:` viene ignorata. Con `resource_mode: yaml` **tutte** le risorse si leggono da questa lista: se ne avevi già altre (per esempio card installate dal Marketplace), vanno elencate anche loro.
    Nelle versioni con la Modalità avanzata (fino alla 2026.5) c'era anche la pagina **Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa** (URL `/local/solar-combo-card.js`, tipo **Modulo JavaScript**), visibile solo con la Modalità avanzata attiva nel profilo.
 3. Ricarica la pagina del browser. Dopo un aggiornamento del file, svuota la cache o aggiungi la versione all'URL della risorsa (per esempio `/local/solar-combo-card.js?v=0.14.0`).
 
@@ -212,7 +214,7 @@ entities:                   # facoltativo: sostituisce le singole entità
 | `cell_count` | `number.{p}_bms_numero_celle` |
 | `cell_1` … `cell_32` | `sensor.{p}_bms_cella_1` … `_cella_32` (fino al numero di celle) |
 
-Il nome dell'elemento non è `jk-bms-card`: quel nome è già usato da un'altra card di HACS, e le due si potrebbero installare insieme.
+Il nome dell'elemento non è `jk-bms-card`: quel nome è già usato da un'altra card del Marketplace (HACS), e le due si potrebbero installare insieme.
 
 ## Solar Combo Generic Card
 

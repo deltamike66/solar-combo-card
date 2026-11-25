@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.16.0 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.16.0";
+/* Solar Combo Card 0.16.1 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.16.1";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",

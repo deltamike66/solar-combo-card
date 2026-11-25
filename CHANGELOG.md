@@ -1,6 +1,10 @@
 # Novità della Solar Combo Card
 
-Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
+Per aggiornare: dal menù **Marketplace** (prima **HACS**) apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
+
+## 0.16.1
+
+**Solo README e CHANGELOG: il menù HACS ora si chiama Marketplace.** Le istruzioni d'installazione e d'aggiornamento usano il nuovo nome, con quello vecchio fra parentesi per chi ha una versione di Home Assistant precedente. Nessuna modifica alla card: l'aggiornamento è facoltativo.
 
 ## 0.16.0
 
