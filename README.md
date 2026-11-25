@@ -27,7 +27,7 @@ Ogni elemento è un'illustrazione SVG disegnata nella card, senza file esterni. 
 - sotto il R4850G2, la corrente d'aria della ventola: entra a sinistra, fredda (azzurra), ed esce a destra, calda (arancio), con accanto la temperatura dell'aria in ingresso e quella in uscita. Quando il R4850G2 è acceso l'aria si muove, in standby resta ferma e sbiadita;
 - la scintilla sul traliccio quando la rete fornisce energia;
 - la linea traliccio → inverter, con la scritta «dalla rete …», solo quando all'ingresso AC dell'inverter ci sono almeno 100 V o arriva potenza. Allora sotto il traliccio c'è il totale preso dalla rete (R4850G2 + inverter) e, se la casa assorbe dalla rete attraverso l'inverter, dietro la casa compare il traliccio;
-- sotto i testi dell'inverter, l'estrattore d'aria del locale con la scritta «estrattore ON/OFF»: le pale girano in azzurro quando è acceso, da spento è grigio e fermo. Compare solo se configuri la chiave `exhaust_fan` (vedi sotto), perché l'estrattore non è un'entità del firmware. Toccando il ventilatore si apre la sua finestra (da lì si accende e si spegne), toccando la scritta la Cronologia.
+- sotto i testi dell'inverter, l'estrattore d'aria del locale con la scritta «estrattore ON/OFF»: le pale girano in azzurro quando è acceso, da spento è grigio e fermo. Compare solo se configuri la chiave `exhaust_fan` (vedi sotto), perché l'estrattore non è un'entità del firmware. Toccando il ventilatore si apre la sua finestra (da lì si accende e si spegne), toccando la scritta la finestra dei dettagli dell'estrattore.
 
 | Flusso | Potenza mostrata |
 |---|---|
@@ -78,7 +78,7 @@ Per installarlo:
 
 Il package legge le entità del dispositivo ESPHome `solar-combo` (`sensor.solar_combo_...`). Se il tuo dispositivo ha un altro nome, o non usi quel firmware, sostituisci le entità nel file (vedi [Fascia «Oggi» senza il package](#fascia-oggi-senza-il-package)).
 
-Più in basso c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature — quelle dell'aria del R4850G2 aprono ingresso e uscita insieme —, stati, il totale FV e le righe del pannello della carica) si apre la **Cronologia** di Home Assistant con il grafico delle sue entità; i valori che ne combinano più di una, come «312 V · 6,9 A», le mostrano tutte insieme.
+Più in basso c'è il pannello **Gestione automatica carica**: se è attiva, lo stato e i parametri. Riporta le soglie di avvio e di stop sulla cella minima, la conferma, gli Ah minimi e quelli caricati, tensione e corrente del R4850G2 con il margine sul consumo, la corrente richiesta, le soglie di cella massima e la carica completa periodica. In fondo alla card ci sono i guasti e i warning dell'inverter (*Fault* e *Warning*, senza quelli nascosti dal firmware come «Mains not connected») e gli allarmi del BMS, se ce ne sono. Toccando un'illustrazione si apre la finestra dei dettagli della sua entità principale. Toccando un valore (potenze, tensioni, correnti, temperature, stati, il totale FV e le righe del pannello della carica) si apre la stessa finestra dei dettagli, sopra la plancia, con il grafico della sua entità: non si cambia pagina. I valori che ne combinano più di una, come «312 V · 6,9 A» o il totale FV, aprono quella principale (la prima: qui la tensione, per il totale FV la stringa PV1); le altre si raggiungono dalle loro voci.
 
 ## Installazione
 
@@ -183,7 +183,7 @@ Card del pacco batterie con il JK-BMS (`type: custom:solar-combo-bms-card`). Rip
 - **Tensione celle**: la griglia con la tensione di ogni cella, con la più alta in azzurro e la più bassa in rosso. Sopra la griglia ci sono la media, il bilanciamento (ON in azzurro, con la corrente) e tutte le temperature: MOS e sonde T1–T4.
 - **In fondo**: il testo degli allarmi del BMS, se ce ne sono.
 
-Toccando l'anello si apre la finestra dei dettagli del SOC. Toccando un valore o una cella si apre la Cronologia con le sue entità. Le voci con entità che non esistono vengono nascoste: per esempio il firmware solar-offgrid-c3 non ha capacità totale, stato dei MOS, bilanciamento e sonde T3–T4.
+Toccando l'anello si apre la finestra dei dettagli del SOC. Toccando un valore o una cella si apre la finestra dei dettagli della sua entità (per i valori che ne combinano più di una, quella principale), senza cambiare pagina. Le voci con entità che non esistono vengono nascoste: per esempio il firmware solar-offgrid-c3 non ha capacità totale, stato dei MOS, bilanciamento e sonde T3–T4.
 
 ```yaml
 type: custom:solar-combo-bms-card

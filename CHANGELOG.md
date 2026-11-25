@@ -2,6 +2,13 @@
 
 Per aggiornare: da HACS apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
 
+## 0.16.0
+
+**Il tocco su un valore apre la finestra dei dettagli, non più la Cronologia.** In tutte e tre le card (Solar Combo, BMS e Generic) toccare un valore, una cella o una riga del pannello della carica apre la finestra dei dettagli dell'entità sopra la plancia, come già succedeva toccando le illustrazioni.
+
+- Perché aggiornare: prima i valori portavano alla pagina Cronologia di Home Assistant e per tornare bisognava rientrare nella plancia. Ora resti sempre sulla plancia: la finestra ha comunque il grafico dell'entità e si chiude con la X.
+- La finestra mostra una sola entità: i valori che ne combinano più di una, come «312 V · 6,9 A» o il totale FV, aprono quella principale (la tensione, la stringa PV1...).
+
 ## 0.15.2
 
 **Solo README: chiarito che il firmware solar-combo non è pubblico.** Le card sono nate per quel firmware, da cui vengono soltanto gli entity_id predefiniti; con qualsiasi altra integrazione basta indicare le proprie entità. Nessuna modifica alla card: l'aggiornamento è facoltativo.

@@ -1,5 +1,5 @@
-/* Solar Combo Card 0.15.2 - https://github.com/deltamike66/solar-combo-card - MIT */
-const VERSION = "0.15.2";
+/* Solar Combo Card 0.16.0 - https://github.com/deltamike66/solar-combo-card - MIT */
+const VERSION = "0.16.0";
 
 const ENTITA = {
   pv1_power: "sensor.{p}_{inv}_pv1_power",
@@ -225,7 +225,7 @@ const STORICO = {
   celle: ["cell_min", "cell_max", "cell_delta"],
   r48_stato: ["charger_standby", "charge_auto"], r48: ["charger_power"],
   r48_sub: ["charger_voltage", "charger_current"],
-  r48_t_in: ["charger_temp_in", "charger_temp_out"], r48_t_out: ["charger_temp_in", "charger_temp_out"],
+  r48_t_in: ["charger_temp_in", "charger_temp_out"], r48_t_out: ["charger_temp_out", "charger_temp_in"],
   rete: ["grid_power", "inverter_grid_power"], rete_sub: ["grid_voltage", "inverter_grid_voltage"],
   inv_rete: ["inverter_grid_power", "inverter_grid_voltage"],
   allarmi: ["bms_alarms"], allarmi_inv: ["inverter_fault", "inverter_warning"],
@@ -286,10 +286,9 @@ class SccBase extends HTMLElement {
   }
 
   _apriStorico(ids) {
-    ids = [...new Set(ids.filter(Boolean))];
-    if (!ids.length) return;
-    history.pushState(null, "", `/history?entity_id=${encodeURIComponent(ids.join(","))}`);
-    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+    ids = ids.filter(Boolean);
+    const stati = (this._hass && this._hass.states) || {};
+    this._piuInfo(ids.find((id) => stati[id]) || ids[0]);
   }
 
   _testo(k, s) {
@@ -903,7 +902,7 @@ const BMS_SOGLIA_A = 0.5;
 const BMS_STORICO = {
   v: ["voltage"], i: ["current"], soc: ["soc"],
   cap_tot: ["capacity_total"], cap_res: ["capacity_remaining"],
-  cmax: ["cell_max", "cell_min", "cell_delta"], cmin: ["cell_max", "cell_min", "cell_delta"],
+  cmax: ["cell_max", "cell_min", "cell_delta"], cmin: ["cell_min", "cell_max", "cell_delta"],
   delta: ["cell_delta"], temp: ["temp_1", "temp_2", "temp_3", "temp_4", "temp_mos"],
   pwr: ["power"], cicli: ["cycles"], allarme: ["alarms"],
   chg: ["charge_mos", "discharge_mos"], dch: ["charge_mos", "discharge_mos"],
