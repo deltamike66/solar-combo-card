@@ -2,6 +2,17 @@
 
 Per aggiornare: dal menù **Marketplace** (prima **HACS**) apri **Solar Combo Card** e premi **Aggiorna**, poi ricarica la pagina del browser. Se l'hai installata a mano, sostituisci `/config/www/solar-combo-card.js` e cambia la versione nell'URL della risorsa (per esempio `?v=0.15.0`).
 
+## 0.16.3
+
+**Nei valori composti ogni grandezza si tocca da sola e apre la sua entità.** Toccando «312 V» in «312 V · 6,9 A» si apre la tensione, toccando «6,9 A» la corrente; lo stesso per le celle (minima, massima, Δ), gli stati del R4850G2, le temperature e il bilanciamento della BMS Card, la riga di Avvio, Stop, R4850G2 e carica completa del pannello, e gli allarmi dell'inverter (fault e warning separati). I separatori e le parole fisse non si toccano e il testo non cambia.
+
+- Perché aggiornare: prima un valore composto apriva sempre la prima entità della lista, e in alcuni casi era una grandezza diversa da quella mostrata (per esempio la temperatura dell'aria in ingresso apriva quella in uscita, la cella massima apriva la minima). Ora ogni valore apre sempre l'entità che mostra.
+- Il totale FV (somma delle due stringhe) non apre più nulla, perché non corrisponde a un'entità. Il valore della rete e la sua tensione aprono quelli del R4850G2 e, se mancano, quelli dell'inverter.
+
+## 0.16.2
+
+**Solo pulizia interna del codice: nessuna modifica visibile.** I nomi interni che parlavano ancora di «storico» (rimasti dalla 0.15) ora parlano di finestra dei dettagli; la card si comporta esattamente come la 0.16.1, l'aggiornamento è facoltativo.
+
 ## 0.16.1
 
 **Solo README e CHANGELOG: il menù HACS ora si chiama Marketplace.** Le istruzioni d'installazione e d'aggiornamento usano il nuovo nome, con quello vecchio fra parentesi per chi ha una versione di Home Assistant precedente. Nessuna modifica alla card: l'aggiornamento è facoltativo.
